@@ -1,13 +1,7 @@
-use std::fs::File;
-use std::io::{self, BufRead};
+use adventofcode2020::DayOfAdvent;
 
 fn load_input() -> Vec<u32> {
-    let file = File::open("data/day1/input").unwrap();
-    let reader = io::BufReader::new(file);
-    reader
-        .lines()
-        .map(|num| num.unwrap().parse::<u32>().unwrap())
-        .collect()
+    adventofcode2020::load_input("data/day1/input", |s| s.parse::<u32>().unwrap())
 }
 
 fn part1(arr: &[u32]) -> (u32, u32, u32) {
@@ -38,22 +32,43 @@ fn part2(arr: &[u32]) -> (u32, u32, u32, u32) {
     (0, 0, 0, 0)
 }
 
-pub fn day1() {
-    let mut arr = load_input();
-    arr.sort_unstable();
+pub fn solve() -> Box<dyn DayOfAdvent> {
+    Box::new(Puzzle::new(load_input()))
+}
 
-    println!("** Day 1 **");
-    let (a, b, ab) = part1(&arr);
-    println!("Part 1: {} * {} = {}", a, b, ab);
+pub struct Puzzle {
+    input: Vec<u32>,
+}
 
-    let (a, b, c, abc) = part2(&arr);
-    println!("Part 2: {} * {} * {} = {}", a, b, c, abc);
+impl Puzzle {
+    fn new(mut input: Vec<u32>) -> Puzzle {
+        input.sort_unstable();
+        Puzzle { input }
+    }
+}
+
+impl DayOfAdvent for Puzzle {
+    fn day(&self) -> u32 {
+        1
+    }
+
+    fn result_strings(&self) -> Vec<String> {
+        let mut ret = Vec::new();
+        let arr = &self.input;
+
+        let (a, b, ab) = part1(&arr);
+        ret.push(format!("Part 1: {} * {} = {}", a, b, ab));
+
+        let (a, b, c, abc) = part2(&arr);
+        ret.push(format!("Part 2: {} * {} * {} = {}", a, b, c, abc));
+        ret
+    }
 }
 
 #[test]
 fn test_day1() {
-    let mut arr = load_input();
-    arr.sort_unstable();
+    let puzzle = Puzzle::new(load_input());
+    let arr = &puzzle.input;
     assert_eq!(arr.len(), 200);
     assert_eq!(arr[0], 350);
     assert_eq!(part1(&arr), (618, 1402, 866436));
@@ -62,8 +77,9 @@ fn test_day1() {
 
 #[test]
 fn test_example_data() {
-    let mut arr = vec![1721, 979, 366, 299, 675, 1456];
-    arr.sort_unstable();
+    let puzzle = Puzzle::new(vec![1721, 979, 366, 299, 675, 1456]);
+    let arr = &puzzle.input;
+
     assert_eq!(part1(&arr), (299, 1721, 514579));
     assert_eq!(part2(&arr), (366, 675, 979, 241861950));
 }
