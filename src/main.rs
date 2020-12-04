@@ -14,7 +14,7 @@ macro_rules! advent{
     }
 }
 
-advent!(day1, day2, day3);
+advent!(day1, day2, day3, day4);
 
 fn print_day<T: AsRef<dyn DayOfAdvent>>(day: T) {
     let day = day.as_ref();
