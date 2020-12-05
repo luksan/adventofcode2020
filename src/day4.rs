@@ -1,4 +1,3 @@
-use adventofcode2020::DayOfAdvent;
 use itertools::Itertools;
 use std::fs::File;
 use std::io::Read;
@@ -19,7 +18,6 @@ fn load_input() -> Vec<Passport> {
                             .map(|(t, v)| (t.parse::<FieldType>().unwrap(), v.to_string()))
                             .unwrap()
                     })
-                    //.map(|e| (FieldType::Byr, e.to_string()))
                     .collect(),
             )
         })
@@ -128,25 +126,6 @@ impl Solver {
     fn part1(&mut self) {}
 
     fn part2(&mut self) {}
-}
-pub fn solve() -> Box<dyn DayOfAdvent> {
-    let mut x = Solver::new();
-
-    x.part1();
-
-    Box::new(x)
-}
-
-impl DayOfAdvent for Solver {
-    fn day(&self) -> u32 {
-        4
-    }
-
-    fn result_strings(&self) -> Vec<String> {
-        let ret = Vec::new();
-
-        ret
-    }
 }
 
 #[test]

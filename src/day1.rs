@@ -1,7 +1,5 @@
-use adventofcode2020::DayOfAdvent;
-
 fn load_input() -> Vec<u32> {
-    adventofcode2020::load_input("data/day1/input", |s| s.parse::<u32>().unwrap())
+    crate::load_input("data/day1/input", |s| s.parse::<u32>().unwrap())
 }
 
 fn part1(arr: &[u32]) -> (u32, u32, u32) {
@@ -32,10 +30,6 @@ fn part2(arr: &[u32]) -> (u32, u32, u32, u32) {
     (0, 0, 0, 0)
 }
 
-pub fn solve() -> Box<dyn DayOfAdvent> {
-    Box::new(Puzzle::new(load_input()))
-}
-
 pub struct Puzzle {
     input: Vec<u32>,
 }
@@ -44,24 +38,6 @@ impl Puzzle {
     fn new(mut input: Vec<u32>) -> Puzzle {
         input.sort_unstable();
         Puzzle { input }
-    }
-}
-
-impl DayOfAdvent for Puzzle {
-    fn day(&self) -> u32 {
-        1
-    }
-
-    fn result_strings(&self) -> Vec<String> {
-        let mut ret = Vec::new();
-        let arr = &self.input;
-
-        let (a, b, ab) = part1(&arr);
-        ret.push(format!("Part 1: {} * {} = {}", a, b, ab));
-
-        let (a, b, c, abc) = part2(&arr);
-        ret.push(format!("Part 2: {} * {} * {} = {}", a, b, c, abc));
-        ret
     }
 }
 

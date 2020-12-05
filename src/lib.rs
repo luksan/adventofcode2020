@@ -1,12 +1,16 @@
+#![allow(dead_code)]
+
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-pub trait DayOfAdvent: Sync {
-    fn day(&self) -> u32;
-
-    fn result_strings(&self) -> Vec<String>;
+macro_rules! advent{
+    ($($mod:ident),*) => {
+         $(mod $mod;)*
+    }
 }
+
+advent!(day1, day2, day3, day4, day5);
 
 pub fn load_input<C, R, P>(path: P, conv: C) -> Vec<R>
 where

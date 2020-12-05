@@ -1,7 +1,5 @@
-use adventofcode2020::DayOfAdvent;
-
 fn load_input() -> Vec<Seat> {
-    let mut seats = adventofcode2020::load_input("data/day5.txt", parse);
+    let mut seats = crate::load_input("data/day5.txt", parse);
     seats.sort_unstable();
     seats
 }
@@ -42,40 +40,6 @@ fn part2(seats: &[Seat]) -> u32 {
         .find(|(&a, &b)| b - a == 2)
         .map(|(a, _)| a + 1)
         .unwrap()
-}
-
-struct Solver {
-    p1: usize,
-    p2: usize,
-}
-
-impl Solver {
-    fn new() -> Self {
-        Self { p1: 0, p2: 0 }
-    }
-
-    fn part1(&mut self) {}
-
-    fn part2(&mut self) {}
-}
-pub fn solve() -> Box<dyn DayOfAdvent> {
-    let mut x = Solver::new();
-
-    x.part1();
-
-    Box::new(x)
-}
-
-impl DayOfAdvent for Solver {
-    fn day(&self) -> u32 {
-        3
-    }
-
-    fn result_strings(&self) -> Vec<String> {
-        let ret = Vec::new();
-
-        ret
-    }
 }
 
 #[test]

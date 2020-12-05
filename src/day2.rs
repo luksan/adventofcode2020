@@ -1,7 +1,5 @@
-use adventofcode2020::DayOfAdvent;
-
 fn load_input() -> Vec<(Rule, Vec<char>)> {
-    adventofcode2020::load_input("data/day2/input.txt", parse_line)
+    crate::load_input("data/day2/input.txt", parse_line)
 }
 
 struct Rule {
@@ -11,13 +9,6 @@ struct Rule {
 }
 
 type Line = (Rule, Vec<char>);
-
-pub fn solve() -> Box<dyn DayOfAdvent> {
-    let mut s = Solver::new(load_input());
-    s.part1();
-    s.part2();
-    Box::new(s)
-}
 
 pub struct Solver {
     input: Vec<Line>,
@@ -62,19 +53,6 @@ impl Solver {
             }
         }
         self.p2_sol = valid;
-    }
-}
-
-impl DayOfAdvent for Solver {
-    fn day(&self) -> u32 {
-        2
-    }
-
-    fn result_strings(&self) -> Vec<String> {
-        let mut ret = Vec::new();
-        ret.push(format!("Part 1: {} valid passwords.", self.p1_sol));
-        ret.push(format!("Part 2: {} valid passwords.", self.p2_sol));
-        ret
     }
 }
 

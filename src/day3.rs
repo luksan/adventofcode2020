@@ -1,8 +1,7 @@
-use adventofcode2020::DayOfAdvent;
 use std::ops::Index;
 
 fn load_input() -> Vec<TreeLine> {
-    adventofcode2020::load_input("data/day3.txt", parse)
+    crate::load_input("data/day3.txt", parse)
 }
 
 #[derive(PartialEq, Copy, Clone, Debug)]
@@ -88,25 +87,6 @@ impl Solver {
             .fold(1, |prod, slope| {
                 slope.filter(|&tile| tile == Tile::Tree).count() * prod
             });
-    }
-}
-pub fn solve() -> Box<dyn DayOfAdvent> {
-    let mut x = Solver::new(load_input());
-
-    x.part1();
-
-    Box::new(x)
-}
-
-impl DayOfAdvent for Solver {
-    fn day(&self) -> u32 {
-        3
-    }
-
-    fn result_strings(&self) -> Vec<String> {
-        let ret = Vec::new();
-
-        ret
     }
 }
 
