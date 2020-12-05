@@ -2,6 +2,7 @@
 
 use std::fs::File;
 use std::io::{self, BufRead};
+use std::iter::FromIterator;
 use std::path::Path;
 
 macro_rules! advent{
@@ -10,12 +11,13 @@ macro_rules! advent{
     }
 }
 
-advent!(day1, day2, day3, day4, day5);
+advent!(day1, day2, day3, day4, day5, day6);
 
-pub fn load_input<C, R, P>(path: P, conv: C) -> Vec<R>
+pub fn load_input<C, R, P, Q>(path: P, conv: C) -> Q
 where
     P: AsRef<Path>,
     C: FnMut(String) -> R,
+    Q: FromIterator<R>,
 {
     let file = File::open(path.as_ref()).unwrap();
     let reader = io::BufReader::new(file);

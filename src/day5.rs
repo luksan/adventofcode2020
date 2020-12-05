@@ -1,5 +1,5 @@
 fn load_input() -> Vec<Seat> {
-    let mut seats = crate::load_input("data/day5.txt", parse);
+    let mut seats: Vec<_> = crate::load_input("data/day5.txt", parse);
     seats.sort_unstable();
     seats
 }
