@@ -69,28 +69,23 @@ struct Solver {
     p2: usize,
 }
 
-fn part1(passports: &Vec<Passport>) -> usize {
-    fn valid(p: &Passport) -> bool {
-        p.fields.len() == 8
-            || p.fields.len() == 7
-                && p.fields
-                    .iter()
-                    .find(|(t, _)| *t == FieldType::Cid)
-                    .is_none()
-    }
-    passports.iter().filter(|p| valid(p)).count()
+fn fields_present(p: &Passport) -> bool {
+    p.fields.len() == 8
+        || p.fields.len() == 7
+            && p.fields
+                .iter()
+                .find(|(t, _)| *t == FieldType::Cid)
+                .is_none()
 }
 
-fn part2(passports: &Vec<Passport>) -> usize {
+fn part1(passports: &[Passport]) -> usize {
+    passports.iter().filter(|p| fields_present(p)).count()
+}
+
+fn part2(passports: &[Passport]) -> usize {
     fn valid(p: &Passport) -> bool {
         let eye_color = vec!["amb", "blu", "brn", "gry", "grn", "hzl", "oth"];
-        if !(p.fields.len() == 8
-            || p.fields.len() == 7
-                && p.fields
-                    .iter()
-                    .find(|(t, _)| *t == FieldType::Cid)
-                    .is_none())
-        {
+        if !fields_present(p) {
             return false;
         }
         p.fields.iter().all(|(t, val)| match t {
@@ -110,7 +105,7 @@ fn part2(passports: &Vec<Passport>) -> usize {
                 val.starts_with('#') && val.len() == 7 && u32::from_str_radix(&val[1..], 16).is_ok()
             }
             FieldType::Ecl => eye_color.contains(&val.as_str()),
-            FieldType::Pid => val.len() == 9 && val.parse::<u32>().is_ok(),
+            FieldType::Pid => val.len() == 9 && val.chars().all(|c| c.is_ascii_digit()),
             FieldType::Cid => true,
         })
     }

@@ -4,12 +4,6 @@ fn load_input() -> Vec<TreeLine> {
     crate::load_input("data/day3.txt", parse)
 }
 
-#[derive(PartialEq, Copy, Clone, Debug)]
-enum Tile {
-    Tree,
-    Open,
-}
-
 fn parse(s: String) -> TreeLine {
     TreeLine(
         s.chars()
@@ -20,6 +14,12 @@ fn parse(s: String) -> TreeLine {
             })
             .collect(),
     )
+}
+
+#[derive(PartialEq, Copy, Clone, Debug)]
+enum Tile {
+    Tree,
+    Open,
 }
 
 struct TreeLine(Vec<Tile>);
@@ -60,34 +60,19 @@ impl Iterator for Slope<'_> {
     }
 }
 
-struct Solver {
-    forest: Vec<TreeLine>,
-    p1: usize,
-    p2: usize,
+fn part1(forest: &[TreeLine]) -> usize {
+    Slope::new(forest, 1, 3)
+        .filter(|&tile| tile == Tile::Tree)
+        .count()
 }
-impl Solver {
-    fn new(forest: Vec<TreeLine>) -> Self {
-        Self {
-            forest,
-            p1: 0,
-            p2: 0,
-        }
-    }
 
-    fn part1(&mut self) {
-        self.p1 = Slope::new(&self.forest, 1, 3)
-            .filter(|&tile| tile == Tile::Tree)
-            .count();
-    }
-
-    fn part2(&mut self) {
-        self.p2 = [(1usize, 1usize), (1, 3), (1, 5), (1, 7), (2, 1)]
-            .iter()
-            .map(|(down, right)| Slope::new(&self.forest, *down, *right))
-            .fold(1, |prod, slope| {
-                slope.filter(|&tile| tile == Tile::Tree).count() * prod
-            });
-    }
+fn part2(forest: &[TreeLine]) -> usize {
+    [(1usize, 1usize), (1, 3), (1, 5), (1, 7), (2, 1)]
+        .iter()
+        .map(|(down, right)| Slope::new(forest, *down, *right))
+        .fold(1, |prod, slope| {
+            slope.filter(|&tile| tile == Tile::Tree).count() * prod
+        })
 }
 
 #[test]
@@ -95,15 +80,12 @@ fn load_data() {
     let x = load_input();
     assert_eq!(x.len(), 323);
     assert_eq!(x.last().unwrap().0.len(), 31);
-
     assert_eq!(x[0][0], x[0][31]);
 }
 
 #[test]
 fn test_real_data() {
-    let mut s = Solver::new(load_input());
-    s.part1();
-    s.part2();
-    assert_eq!(s.p1, 282);
-    assert_eq!(s.p2, 958815792);
+    let forest = load_input();
+    assert_eq!(part1(&forest), 282);
+    assert_eq!(part2(&forest), 958815792);
 }

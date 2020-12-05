@@ -2,6 +2,12 @@ fn load_input() -> Vec<(Rule, Vec<char>)> {
     crate::load_input("data/day2/input.txt", parse_line)
 }
 
+fn parse_line<T: AsRef<str>>(line: T) -> Line {
+    let (n1, n2, letter, pwd) =
+        scan_fmt::scan_fmt!(line.as_ref(), "{d}-{d} {}: {}", usize, usize, char, String).unwrap();
+    (Rule { n1, n2, letter }, pwd.chars().collect())
+}
+
 struct Rule {
     letter: char,
     n1: usize,
@@ -16,53 +22,34 @@ pub struct Solver {
     p2_sol: u32,
 }
 
-fn parse_line<T: AsRef<str>>(line: T) -> Line {
-    let (n1, n2, letter, pwd) =
-        scan_fmt::scan_fmt!(line.as_ref(), "{d}-{d} {}: {}", usize, usize, char, String).unwrap();
-    (Rule { n1, n2, letter }, pwd.chars().collect())
+fn part1(passwords: &[Line]) -> usize {
+    passwords
+        .iter()
+        .filter(|(rule, pwd)| {
+            let cnt = pwd.iter().filter(|&&p| p == rule.letter).count();
+            cnt >= rule.n1 && cnt <= rule.n2
+        })
+        .count()
 }
 
-impl Solver {
-    fn new(input: Vec<Line>) -> Self {
-        Self {
-            input,
-            p1_sol: 0,
-            p2_sol: 0,
+fn part2(passwords: &[Line]) -> usize {
+    let mut valid = 0;
+    for (rule, pwd) in passwords {
+        match (pwd.get(rule.n1 - 1), pwd.get(rule.n2 - 1)) {
+            (Some(a), Some(b)) if a == b => {}
+            (Some(&a), _) if a == rule.letter => valid += 1,
+            (_, Some(&a)) if a == rule.letter => valid += 1,
+            (_, _) => {}
         }
     }
-
-    fn part1(&mut self) {
-        self.p1_sol = self
-            .input
-            .iter()
-            .filter(|(rule, pwd)| {
-                let cnt = pwd.iter().filter(|&&p| p == rule.letter).count();
-                cnt >= rule.n1 && cnt <= rule.n2
-            })
-            .count() as u32;
-    }
-
-    fn part2(&mut self) {
-        let mut valid = 0;
-        for (rule, pwd) in &self.input {
-            match (pwd.get(rule.n1 - 1), pwd.get(rule.n2 - 1)) {
-                (Some(a), Some(b)) if a == b => {}
-                (Some(&a), _) if a == rule.letter => valid += 1,
-                (_, Some(&a)) if a == rule.letter => valid += 1,
-                (_, _) => {}
-            }
-        }
-        self.p2_sol = valid;
-    }
+    valid
 }
 
 #[test]
 fn test_real_data() {
-    let mut solver = Solver::new(load_input());
-    solver.part1();
-    assert_eq!(solver.p1_sol, 620);
-    solver.part2();
-    assert_eq!(solver.p2_sol, 727);
+    let passwords = load_input();
+    assert_eq!(part1(&passwords), 620);
+    assert_eq!(part2(&passwords), 727);
 }
 
 #[test]
@@ -71,11 +58,6 @@ fn test_example_data() {
         .iter()
         .map(parse_line)
         .collect::<Vec<_>>();
-
-    let mut solver = Solver::new(lines);
-    solver.part1();
-    assert_eq!(solver.p1_sol, 2);
-
-    solver.part2();
-    assert_eq!(solver.p2_sol, 1);
+    assert_eq!(part1(&lines), 2);
+    assert_eq!(part2(&lines), 1);
 }

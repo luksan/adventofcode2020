@@ -1,5 +1,7 @@
 fn load_input() -> Vec<u32> {
-    crate::load_input("data/day1/input", |s| s.parse::<u32>().unwrap())
+    let mut lines = crate::load_input("data/day1/input", |s| s.parse::<u32>().unwrap());
+    lines.sort_unstable();
+    lines
 }
 
 fn part1(arr: &[u32]) -> (u32, u32, u32) {
@@ -30,21 +32,9 @@ fn part2(arr: &[u32]) -> (u32, u32, u32, u32) {
     (0, 0, 0, 0)
 }
 
-pub struct Puzzle {
-    input: Vec<u32>,
-}
-
-impl Puzzle {
-    fn new(mut input: Vec<u32>) -> Puzzle {
-        input.sort_unstable();
-        Puzzle { input }
-    }
-}
-
 #[test]
 fn test_day1() {
-    let puzzle = Puzzle::new(load_input());
-    let arr = &puzzle.input;
+    let arr = load_input();
     assert_eq!(arr.len(), 200);
     assert_eq!(arr[0], 350);
     assert_eq!(part1(&arr), (618, 1402, 866436));
@@ -53,9 +43,8 @@ fn test_day1() {
 
 #[test]
 fn test_example_data() {
-    let puzzle = Puzzle::new(vec![1721, 979, 366, 299, 675, 1456]);
-    let arr = &puzzle.input;
-
+    let mut arr = vec![1721, 979, 366, 299, 675, 1456];
+    arr.sort_unstable();
     assert_eq!(part1(&arr), (299, 1721, 514579));
     assert_eq!(part2(&arr), (366, 675, 979, 241861950));
 }
