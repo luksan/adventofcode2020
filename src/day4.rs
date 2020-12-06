@@ -1,34 +1,23 @@
 use itertools::Itertools;
 use std::str::FromStr;
 
+type Passport = Vec<(FieldType, String)>;
+
 fn load_groups() -> Vec<Passport> {
     crate::load_input_groups("data/day4.txt", parse_group)
 }
 
 fn parse_group(group_iter: &mut (dyn Iterator<Item = String>)) -> Passport {
-    let mut fields = Vec::new();
-    for line in group_iter {
-        for field in line.split_ascii_whitespace() {
-            fields.push(
-                field
-                    .split(':')
-                    .next_tuple()
-                    .map(|(t, v)| (t.parse::<FieldType>().unwrap(), v.to_string()))
-                    .unwrap(),
-            );
-        }
-    }
-    Passport::new(fields)
-}
-
-struct Passport {
-    fields: Vec<(FieldType, String)>,
-}
-
-impl Passport {
-    fn new(fields: Vec<(FieldType, String)>) -> Self {
-        Self { fields }
-    }
+    group_iter.fold(Passport::with_capacity(8), |mut passport, line| {
+        passport.extend(line.split_ascii_whitespace().map(|field| {
+            field
+                .split(':')
+                .next_tuple()
+                .map(|(t, v)| (t.parse::<FieldType>().unwrap(), v.to_string()))
+                .unwrap()
+        }));
+        passport
+    })
 }
 
 #[derive(PartialEq, Debug)]
@@ -61,18 +50,9 @@ impl FromStr for FieldType {
         })
     }
 }
-struct Solver {
-    p1: usize,
-    p2: usize,
-}
 
 fn fields_present(p: &Passport) -> bool {
-    p.fields.len() == 8
-        || p.fields.len() == 7
-            && p.fields
-                .iter()
-                .find(|(t, _)| *t == FieldType::Cid)
-                .is_none()
+    p.len() == 8 || p.len() == 7 && p.iter().find(|(t, _)| *t == FieldType::Cid).is_none()
 }
 
 fn part1(passports: &[Passport]) -> usize {
@@ -85,7 +65,7 @@ fn part2(passports: &[Passport]) -> usize {
         if !fields_present(p) {
             return false;
         }
-        p.fields.iter().all(|(t, val)| match t {
+        p.iter().all(|(t, val)| match t {
             FieldType::Byr => val.parse::<u32>().map_or(false, |y| y >= 1920 && y <= 2002),
             FieldType::Iyr => val.parse::<u32>().map_or(false, |y| y >= 2010 && y <= 2020),
             FieldType::Eyr => val.parse::<u32>().map_or(false, |y| y >= 2020 && y <= 2030),
@@ -110,23 +90,13 @@ fn part2(passports: &[Passport]) -> usize {
     passports.iter().filter(|p| valid(&p)).count()
 }
 
-impl Solver {
-    fn new() -> Self {
-        Self { p1: 0, p2: 0 }
-    }
-
-    fn part1(&mut self) {}
-
-    fn part2(&mut self) {}
-}
-
 #[test]
 fn real_data() {
     let x = load_groups();
     assert_eq!(x.len(), 282);
 
-    assert_eq!(x[0].fields.len(), 8);
-    assert_eq!(x[0].fields[0].1, "grn");
+    assert_eq!(x[0].len(), 8);
+    assert_eq!(x[0][0].1, "grn");
 
     assert_eq!(part1(&x), 226);
     assert_eq!(part2(&x), 160);
