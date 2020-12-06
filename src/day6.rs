@@ -1,18 +1,17 @@
-use std::collections::HashMap;
+use counter::Counter;
+
+type LineType = (usize, Counter<char>); // (size of group, answer count)
 
 fn load_groups() -> Vec<LineType> {
     crate::load_input_groups("data/day6.txt", parse_group)
 }
 
 fn parse_group(group_iter: &mut (dyn Iterator<Item = String>)) -> LineType {
-    group_iter.fold((0, HashMap::new()), |(grp_size, mut answers), line| {
-        line.chars()
-            .for_each(|c| *answers.entry(c).or_insert(0) += 1);
+    group_iter.fold((0, Counter::new()), |(grp_size, mut answers), line| {
+        answers.update(line.chars());
         (grp_size + 1, answers)
     })
 }
-
-type LineType = (usize, HashMap<char, usize>);
 
 fn part1(lines: &[LineType]) -> usize {
     lines.iter().map(|(_, cnt)| cnt.len()).sum()
