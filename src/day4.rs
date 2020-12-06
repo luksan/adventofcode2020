@@ -1,27 +1,24 @@
 use itertools::Itertools;
-use std::fs::File;
-use std::io::Read;
 use std::str::FromStr;
 
-fn load_input() -> Vec<Passport> {
-    let mut file = File::open("data/day4.txt").unwrap();
-    let mut s = String::new();
-    file.read_to_string(&mut s).unwrap();
+fn load_groups() -> Vec<Passport> {
+    crate::load_input_groups("data/day4.txt", parse_group)
+}
 
-    s.split("\n\n")
-        .map(|p| {
-            Passport::new(
-                p.split_ascii_whitespace()
-                    .map(|e| {
-                        e.split(':')
-                            .next_tuple()
-                            .map(|(t, v)| (t.parse::<FieldType>().unwrap(), v.to_string()))
-                            .unwrap()
-                    })
-                    .collect(),
-            )
-        })
-        .collect()
+fn parse_group(group_iter: &mut (dyn Iterator<Item = String>)) -> Passport {
+    let mut fields = Vec::new();
+    for line in group_iter {
+        for field in line.split_ascii_whitespace() {
+            fields.push(
+                field
+                    .split(':')
+                    .next_tuple()
+                    .map(|(t, v)| (t.parse::<FieldType>().unwrap(), v.to_string()))
+                    .unwrap(),
+            );
+        }
+    }
+    Passport::new(fields)
 }
 
 struct Passport {
@@ -125,7 +122,7 @@ impl Solver {
 
 #[test]
 fn real_data() {
-    let x = load_input();
+    let x = load_groups();
     assert_eq!(x.len(), 282);
 
     assert_eq!(x[0].fields.len(), 8);

@@ -1,26 +1,15 @@
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::Read;
 
-fn load_input() -> Vec<LineType> {
-    let mut file = File::open("data/day6.txt").unwrap();
-    let mut s = String::new();
-    file.read_to_string(&mut s).unwrap();
+fn load_groups() -> Vec<LineType> {
+    crate::load_input_groups("data/day6.txt", parse_group)
+}
 
-    s.trim_end()
-        .split("\n\n")
-        .map(|grp| {
-            (
-                grp.split('\n').count(),
-                grp.chars()
-                    .filter(|c| c.is_alphabetic())
-                    .fold(HashMap::new(), |mut cnt, c| {
-                        *cnt.entry(c).or_insert(0) += 1;
-                        cnt
-                    }),
-            )
-        })
-        .collect()
+fn parse_group(group_iter: &mut (dyn Iterator<Item = String>)) -> LineType {
+    group_iter.fold((0, HashMap::new()), |(grp_size, mut answers), line| {
+        line.chars()
+            .for_each(|c| *answers.entry(c).or_insert(0) += 1);
+        (grp_size + 1, answers)
+    })
 }
 
 type LineType = (usize, HashMap<char, usize>);
@@ -38,7 +27,7 @@ fn part2(lines: &[LineType]) -> usize {
 
 #[test]
 fn test_real_data() {
-    let d = load_input();
+    let d = load_groups();
     assert_eq!(d.len(), 487);
     assert_eq!(part1(&d), 6565);
     assert_eq!(part2(&d), 3137);
