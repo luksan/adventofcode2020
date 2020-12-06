@@ -1,0 +1,26 @@
+
+type LineType = String;
+
+fn load_input() -> Vec<LineType> {
+    crate::load_input("data/dayN.txt", parse)
+}
+
+fn parse(s: String) -> LineType {
+    s.parse::<LineType>().unwrap()
+}
+
+fn part1(_lines: &[LineType]) -> usize {
+    0
+}
+
+fn part2(_lines: &[LineType]) -> usize {
+    0
+}
+
+#[test]
+fn test_real_data() {
+    let d = load_input();
+    assert_eq!(d.len(), 1);
+    assert_eq!(part1(&d), 1);
+    assert_eq!(part2(&d), 1);
+}
