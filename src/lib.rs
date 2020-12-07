@@ -12,7 +12,7 @@ macro_rules! advent{
     }
 }
 
-advent!(day1, day2, day3, day4, day5, day6);
+advent!(day1, day2, day3, day4, day5, day6, day7);
 
 pub fn buf_reader<P>(path: P) -> BufReader<File>
 where
