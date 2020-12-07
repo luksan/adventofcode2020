@@ -32,9 +32,7 @@ fn inside_out(rules: &Rules) -> HashMap<&SmolStr, HashSet<&SmolStr>> {
     let mut ret = HashMap::new();
     for (bag, contains) in rules {
         for inside in contains.keys() {
-            ret.entry(inside)
-                .or_insert(HashSet::with_capacity(0))
-                .insert(bag);
+            ret.entry(inside).or_insert_with(HashSet::new).insert(bag);
         }
     }
     ret
@@ -50,7 +48,9 @@ fn part1(rules: &Rules) -> usize {
     let mut new_bags = bags.clone();
     while !new_bags.is_empty() {
         let new = new_bags.iter().fold(Vec::new(), |mut new, bag| {
-            rev_map.get(*bag).map(|contains| new.push(contains.iter()));
+            if let Some(contains) = rev_map.get(*bag) {
+                new.push(contains.iter())
+            }
             new
         });
 
@@ -98,7 +98,7 @@ vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
 faded blue bags contain no other bags.
 dotted black bags contain no other bags.";
 
-    let rules: Rules = input.lines().map(|s| parse(s)).collect();
+    let rules: Rules = input.lines().map(parse).collect();
     assert_eq!(rules["light red"]["bright white"], 1);
 
     assert_eq!(part1(&rules), 4);

@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![allow(clippy::ptr_arg)]
 
 use itertools::Itertools;
 use std::fs::File;
@@ -44,7 +45,7 @@ where
     buf_reader(path)
         .lines()
         .map(|l| l.unwrap())
-        .group_by(|line| line.len() == 0)
+        .group_by(|line| line.is_empty())
         .into_iter()
         .filter(|(empty, _)| !empty)
         .map(|(_, mut group)| group_parser(&mut group))
