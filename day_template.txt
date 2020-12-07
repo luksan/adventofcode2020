@@ -1,26 +1,33 @@
 
 type LineType = String;
+type LineContainer = Vec<String>;
 
-fn load_input() -> Vec<LineType> {
+fn load_input() -> LineContainer {
     crate::load_input("data/dayN.txt", parse)
 }
 
-fn parse(s: String) -> LineType {
-    s.parse::<LineType>().unwrap()
+fn parse<S: AsRef<str>>(s: S) -> LineType {
+    let line = s.as_ref();
+    line.parse::<LineType>().unwrap()
 }
 
-fn part1(_lines: &[LineType]) -> usize {
+fn part1(_lines: &LineContainer) -> usize {
     0
 }
 
-fn part2(_lines: &[LineType]) -> usize {
+fn part2(_lines: &LineContainer) -> usize {
     0
 }
 
 #[test]
-fn test_real_data() {
+fn real_data() {
     let d = load_input();
     assert_eq!(d.len(), 1);
     assert_eq!(part1(&d), 1);
     assert_eq!(part2(&d), 1);
+}
+
+#[test]
+fn test_data() {
+
 }
