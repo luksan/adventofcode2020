@@ -24,10 +24,14 @@ fn real_data() {
     let d = load_input();
     assert_eq!(d.len(), 1);
     assert_eq!(part1(&d), 1);
-    assert_eq!(part2(&d), 1);
+    // assert_eq!(part2(&d), 1);
 }
 
 #[test]
 fn test_data() {
-
+    let data = // Example data
+"";
+    let d: LineContainer = data.lines().map(parse).collect();
+    assert_eq!(part1(&d), 1);
+    // assert_eq!(part2(&d), 1);
 }
