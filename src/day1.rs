@@ -1,5 +1,5 @@
 fn load_input() -> Vec<u32> {
-    let mut lines: Vec<_> = crate::load_input("data/day1/input", |s| s.parse::<u32>().unwrap());
+    let mut lines: Vec<_> = crate::load_input("data/day1.txt", |s| s.parse::<u32>().unwrap());
     lines.sort_unstable();
     lines
 }
