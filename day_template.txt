@@ -2,7 +2,7 @@
 type LineType = String;
 type LineContainer = Vec<String>;
 
-fn load_input() -> LineContainer {
+pub fn load_input() -> LineContainer {
     crate::load_input("data/dayN.txt", parse)
 }
 
@@ -11,11 +11,11 @@ fn parse<S: AsRef<str>>(s: S) -> LineType {
     line.parse::<LineType>().unwrap()
 }
 
-fn part1(_lines: &LineContainer) -> usize {
+pub fn part1(_lines: &LineContainer) -> usize {
     0
 }
 
-fn part2(_lines: &LineContainer) -> usize {
+pub fn part2(_lines: &LineContainer) -> usize {
     0
 }
 
