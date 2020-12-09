@@ -9,7 +9,7 @@ use std::path::Path;
 
 macro_rules! advent{
     ($($mod:ident),*) => {
-         $(mod $mod;)*
+         $(pub mod $mod;)*
     }
 }
 

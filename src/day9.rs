@@ -1,5 +1,8 @@
 use itertools::Itertools;
 use itertools::MinMaxResult::MinMax;
+use std::collections::VecDeque;
+use std::ops::Add;
+use std::slice::Iter;
 
 type Num = u64;
 type CypherText = Vec<Num>;
@@ -13,31 +16,65 @@ fn parse<S: AsRef<str>>(s: S) -> Num {
     line.parse::<Num>().unwrap()
 }
 
+struct WindowPairsSum<'a, T: Add<Output = T> + Copy> {
+    push: Iter<'a, T>,
+    pairs: VecDeque<(T, Vec<T>)>,
+}
+
+impl<'a, T: Add<Output = T> + Copy> WindowPairsSum<'a, T> {
+    pub fn new(slice: &'a [T], win_size: usize) -> Self {
+        assert!(slice.len() >= win_size);
+
+        let mut pairs = VecDeque::with_capacity(win_size);
+        pairs.push_back((slice[0], Vec::with_capacity(win_size - 1))); // Dummy entry
+        for n in 0..win_size - 1 {
+            let v = slice[n];
+            let mut vec = Vec::with_capacity(win_size - 1);
+            for w in &slice[n + 1..win_size - 1] {
+                vec.push(v + *w);
+            }
+            pairs.push_back((v, vec));
+        }
+
+        Self {
+            push: slice[win_size - 1..].iter(),
+            pairs,
+        }
+    }
+
+    /// Returns a tuple (next list entry, iterator of pair-sums of previous window)
+    /// This is a streaming iterator, so we can't implement the Iterator protocol
+    fn next(&mut self) -> Option<(T, Box<dyn Iterator<Item = T> + '_>)> {
+        if self.push.as_slice().len() < 2 {
+            return None;
+        }
+
+        let (_, mut vec) = self.pairs.pop_front().unwrap();
+        vec.clear();
+
+        let new = *self.push.next()?;
+        for (v, p) in &mut self.pairs {
+            p.push(*v + new)
+        }
+
+        self.pairs.push_back((new, vec));
+
+        Some((
+            self.push.as_slice()[0],
+            Box::new(self.pairs.iter().map(|(_, p)| p.iter().copied()).flatten()),
+        ))
+    }
+}
+
 pub fn part1(nums: &CypherText, preamble_len: usize) -> u64 {
-    let sums: Vec<Vec<Num>> = nums
-        .as_slice()
-        .windows(preamble_len)
-        .map(|w| {
-            w.iter()
-                .combinations(2)
-                .map(|c| c.into_iter().sum())
-                .collect::<Vec<_>>()
-        })
-        .collect();
+    let mut sum_iter = WindowPairsSum::new(nums, preamble_len);
 
-    assert_eq!(nums.len(), sums.len() + preamble_len - 1);
-    assert_eq!(sums[0].len(), sums.last().unwrap().len());
-    assert_eq!(sums[0].len(), (0..preamble_len).sum());
-
-    nums.iter()
-        .skip(preamble_len)
-        .zip(sums.into_iter())
-        .find_map(|(num, sums)| {
-            sums.into_iter()
-                .find(|s| s == num)
-                .map_or(Some(*num), |_| None)
-        })
-        .unwrap()
+    while let Some((v, mut sums)) = sum_iter.next() {
+        if sums.find(|s| *s == v).is_none() {
+            return v;
+        }
+    }
+    0
 }
 
 pub fn part2(text: &CypherText, step1: u64) -> u64 {
