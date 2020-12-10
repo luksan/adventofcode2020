@@ -1,9 +1,11 @@
 
-type LineType = String;
-type LineContainer = Vec<String>;
+const INPUT_FILE: &str = "data/dayN.txt";
 
-pub fn load_input() -> LineContainer {
-    crate::load_input("data/dayN.txt", parse)
+type LineType = String;
+type LineContainer = Vec<LineType>;
+
+pub fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> LineContainer {
+    line_source.into_iter().map(parse).collect()
 }
 
 fn parse<S: AsRef<str>>(s: S) -> LineType {
@@ -21,7 +23,7 @@ pub fn part2(_lines: &LineContainer) -> usize {
 
 #[test]
 fn real_data() {
-    let d = load_input();
+    let d = load_input(crate::load_strings(INPUT_FILE));
     assert_eq!(d.len(), 1);
     assert_eq!(part1(&d), 1);
     // assert_eq!(part2(&d), 1);
@@ -30,8 +32,8 @@ fn real_data() {
 #[test]
 fn test_data() {
     let data = // Example data
-"";
-    let d: LineContainer = data.lines().map(parse).collect();
+        "";
+    let d = load_input(data.lines());
     assert_eq!(part1(&d), 1);
     // assert_eq!(part2(&d), 1);
 }

@@ -4,11 +4,13 @@ use std::collections::VecDeque;
 use std::ops::Add;
 use std::slice::Iter;
 
+const INPUT_FILE: &str = "data/day9.txt";
+
 type Num = u64;
 type CypherText = Vec<Num>;
 
-pub fn load_input() -> CypherText {
-    crate::load_input("data/day9.txt", parse)
+pub fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> CypherText {
+    line_source.into_iter().map(parse).collect()
 }
 
 fn parse<S: AsRef<str>>(s: S) -> Num {
@@ -101,7 +103,7 @@ pub fn part2(text: &CypherText, step1: u64) -> u64 {
 
 #[test]
 fn real_data() {
-    let d = load_input();
+    let d = load_input(crate::load_strings(INPUT_FILE));
     assert_eq!(d.len(), 1000);
     let p1 = part1(&d, 25);
     assert_eq!(p1, 70639851);
@@ -131,7 +133,7 @@ fn test_data() {
 277
 309
 576";
-    let d: CypherText = data.lines().map(parse).collect();
+    let d: CypherText = load_input(data.lines());
     let p1 = part1(&d, 5);
     assert_eq!(p1, 127);
     assert_eq!(part2(&d, p1), 62);

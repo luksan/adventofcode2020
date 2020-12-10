@@ -23,6 +23,13 @@ where
     io::BufReader::new(file)
 }
 
+pub fn load_strings<P>(path: P) -> Box<dyn Iterator<Item = String>>
+where
+    P: AsRef<Path>,
+{
+    Box::new(buf_reader(path).lines().map(|l| l.unwrap()))
+}
+
 pub fn load_input<C, R, P, Q>(path: P, conv: C) -> Q
 where
     P: AsRef<Path>,

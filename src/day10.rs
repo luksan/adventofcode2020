@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
+const INPUT_FILE: &str = "data/day10.txt";
+
 type Adapter = i32;
 type Bag = Vec<i32>;
 
-pub fn load_input() -> Bag {
-    let mut x: Bag = crate::load_input("data/day10.txt", parse);
+pub fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Bag {
+    let mut x: Bag = line_source.into_iter().map(parse).collect();
     x.push(0); // the outlet
     x.sort_unstable();
     x.push(x.last().unwrap() + 3); // built-in adapter
@@ -64,7 +66,7 @@ pub fn part2(bag: &Bag) -> usize {
 
 #[test]
 fn real_data() {
-    let d = load_input();
+    let d = load_input(crate::load_strings(INPUT_FILE));
     assert_eq!(d.len(), 107 + 2);
     assert_eq!(part1(&d), 2475);
     assert_eq!(part2(&d), 442136281481216);
@@ -104,11 +106,7 @@ fn test_data() {
 34
 10
 3";
-    let mut d: Bag = data.lines().map(parse).collect();
-    d.push(0); // the outlet
-    d.sort_unstable();
-    d.push(d.last().unwrap() + 3); // built-in adapter
-
+    let d: Bag = load_input(data.lines());
     assert_eq!(part1(&d), 22 * 10);
     assert_eq!(part2(&d), 19208);
 }
