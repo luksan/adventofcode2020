@@ -1,6 +1,7 @@
 use std::convert::{TryFrom, TryInto};
-use std::fmt::{Display, Formatter, Write};
-use std::ops::Index;
+use std::fmt::{Display, Formatter};
+
+use crate::grid::*;
 
 const INPUT_FILE: &str = "data/day11.txt";
 
@@ -59,225 +60,35 @@ impl Display for Tile {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Coord {
-    x: i32,
-    y: i32,
-}
-
-impl Coord {
-    pub fn new(x: i32, y: i32) -> Self {
-        Self { x, y }
-    }
-    pub fn unpack(&self) -> (i32, i32) {
-        (self.x, self.y)
-    }
-    pub fn offset(&self, x: i32, y: i32) -> Coord {
-        Coord::new(self.x + x, self.y + y)
-    }
-
-    pub fn line(&self, direction: (i32, i32)) -> LineIter {
-        LineIter::new(direction, &self)
-    }
-}
-
-pub struct LineIter {
-    direction: (i32, i32),
-    curr: Coord,
-}
-
-impl LineIter {
-    pub fn new(direction: (i32, i32), start: &Coord) -> Self {
-        Self {
-            direction,
-            curr: *start,
-        }
-    }
-}
-
-impl Iterator for LineIter {
-    type Item = Coord;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.curr.x += self.direction.0;
-        self.curr.y += self.direction.1;
-        Some(self.curr)
-    }
-}
-
-pub struct Grid<T> {
-    width: i32,
-    height: i32,
-    tiles: Vec<T>,
-}
-
-impl<T> Grid<T> {
-    pub fn new(tiles: Vec<T>, width: i32, height: i32) -> Self {
-        Self {
-            tiles,
-            width,
-            height,
-        }
-    }
-
-    pub fn width(&self) -> i32 {
-        self.width
-    }
-
-    pub fn height(&self) -> i32 {
-        self.height
-    }
-
-    pub fn get(&self, coord: &Coord) -> Option<&T> {
-        match self.valid_coord(coord) {
-            true => Some(&self.tiles[self.coord_to_idx(coord)]),
-            false => None,
-        }
-    }
-
-    pub fn get_mut(&mut self, coord: &Coord) -> Option<&mut T> {
-        match self.valid_coord(coord) {
-            true => {
-                let idx = self.coord_to_idx(coord);
-                Some(&mut self.tiles[idx])
-            }
-            false => None,
-        }
-    }
-
-    pub fn neighbours(&self, coord: &Coord) -> NeighboursIter<T> {
-        NeighboursIter::new(coord, self)
-    }
-
-    pub fn line(&self, start: &Coord, direction: &(i32, i32)) -> Box<dyn Iterator<Item = &T> + '_> {
-        Box::new(
-            start
-                .line(*direction)
-                .take_while(move |&coord| self.valid_coord(&coord))
-                .map(move |coord| &self[&coord]),
-        )
-    }
-
-    pub fn coords(&self) -> Box<dyn Iterator<Item = Coord> + '_> {
-        Box::new((0..self.height).flat_map(move |y| (0..self.width).map(move |x| Coord::new(x, y))))
-    }
-
-    fn coord_to_idx(&self, coord: &Coord) -> usize {
-        if !self.valid_coord(coord) {
-            panic!("Invalid coord to coord_to_idx")
-        }
-        (coord.y * self.width + coord.x) as usize
-    }
-
-    pub fn valid_coord(&self, c: &Coord) -> bool {
-        !(c.x < 0 || c.x >= self.width || c.y < 0 || c.y >= self.height)
-    }
-}
-
-impl<T: Clone> Clone for Grid<T> {
-    fn clone(&self) -> Self {
-        Self {
-            tiles: self.tiles.clone(),
-            ..*self
-        }
-    }
-}
-
-impl<T> Index<&Coord> for Grid<T> {
-    type Output = T;
-
-    fn index(&self, index: &Coord) -> &Self::Output {
-        &self.tiles[self.coord_to_idx(index)]
-    }
-}
-impl Display for TileGrid {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut tiles = self.tiles.iter();
-        for _y in 0..self.height {
-            for t in (&mut tiles).take(self.width as usize) {
-                f.write_char(match t {
-                    Tile::Floor => '.',
-                    Tile::Chair => 'L',
-                    Tile::Occupied => '#',
-                })?;
-            }
-            writeln!(f)?;
-        }
-        Ok(())
-    }
-}
-
-impl<T: PartialEq> PartialEq for Grid<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.tiles == other.tiles
-    }
-}
-
-pub struct NeighboursIter<'a, T> {
-    grid: &'a Grid<T>,
-    center: Coord,
-    next: Coord,
-}
-
-impl<'a, T> NeighboursIter<'a, T> {
-    fn new(coord: &Coord, grid: &'a Grid<T>) -> Self {
-        Self {
-            grid,
-            center: *coord,
-            next: coord.offset(-2, -1),
-        }
-    }
-}
-
-impl<'a, T> Iterator for NeighboursIter<'a, T> {
-    type Item = &'a T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.next.x += 1;
-        if self.next.x > self.center.x + 1 {
-            self.next.x = self.center.x - 1;
-            self.next.y += 1;
-        }
-        if self.next.y > self.center.y + 1 {
-            return None;
-        }
-        if self.next == self.center {
-            return self.next();
-        }
-        match self.grid.get(&self.next) {
-            None => self.next(),
-            t => t,
-        }
-    }
-}
-
-fn count_surrounding_occupied(chair: &Coord, grid: &TileGrid) -> u8 {
-    assert_ne!(grid.get(chair).unwrap(), &Tile::Floor);
-    grid.neighbours(chair)
-        .filter(|&n| n == &Tile::Occupied)
-        .count() as u8
-}
-
 pub fn part1(grid: &TileGrid) -> usize {
     let mut next = (*grid).clone();
-    for _ in 0..10000 {
+    for _ in 0..100 {
         let grid = next;
         next = grid.clone();
-        for x in 0..grid.width() {
-            for y in 0..grid.height() {
-                let coord = &Coord::new(x, y);
-                match grid.get(coord).unwrap() {
-                    Tile::Floor => {}
-                    Tile::Occupied => {
-                        if count_surrounding_occupied(coord, &grid) >= 4 {
-                            *next.get_mut(coord).unwrap() = Tile::Chair;
+        'coords: for coord in grid.coords() {
+            match grid[&coord] {
+                Tile::Floor => {}
+                Tile::Occupied => {
+                    let mut cnt = 0;
+                    for t in grid.neighbours(&coord) {
+                        match t {
+                            Tile::Occupied => cnt += 1,
+                            Tile::Floor => continue,
+                            Tile::Chair => {}
+                        }
+                        if cnt >= 4 {
+                            next[&coord] = Tile::Chair;
+                            break;
                         }
                     }
-                    Tile::Chair => {
-                        if count_surrounding_occupied(coord, &grid) == 0 {
-                            *next.get_mut(coord).unwrap() = Tile::Occupied;
+                }
+                Tile::Chair => {
+                    for t in grid.neighbours(&coord) {
+                        if matches!(t, &Tile::Occupied) {
+                            continue 'coords;
                         }
                     }
+                    next[&coord] = Tile::Occupied
                 }
             }
         }
@@ -285,7 +96,7 @@ pub fn part1(grid: &TileGrid) -> usize {
             break;
         }
     }
-    next.tiles.iter().filter(|t| *t == &Tile::Occupied).count()
+    next.iter().filter(|t| *t == &Tile::Occupied).count()
 }
 
 pub fn part2(input: &TileGrid) -> usize {
@@ -304,11 +115,11 @@ pub fn part2(input: &TileGrid) -> usize {
         let grid = next;
         next = grid.clone();
         'next_tile: for c in grid.coords() {
-            match grid.get(&c).unwrap() {
+            match grid[&c] {
                 Tile::Floor => {}
                 Tile::Chair => {
                     for d in &directions {
-                        for t in grid.line(&c, d) {
+                        for t in grid.line(&c, *d) {
                             match t {
                                 Tile::Occupied => continue 'next_tile,
                                 Tile::Floor => continue,
@@ -316,12 +127,12 @@ pub fn part2(input: &TileGrid) -> usize {
                             }
                         }
                     }
-                    *next.get_mut(&c).unwrap() = Tile::Occupied;
+                    next[&c] = Tile::Occupied;
                 }
                 Tile::Occupied => {
                     let mut cnt = 0;
                     for d in &directions {
-                        for t in grid.line(&c, d) {
+                        for t in grid.line(&c, *d) {
                             match t {
                                 Tile::Occupied => cnt += 1,
                                 Tile::Floor => continue,
@@ -329,9 +140,10 @@ pub fn part2(input: &TileGrid) -> usize {
                             }
                             break;
                         }
-                    }
-                    if cnt >= 5 {
-                        *next.get_mut(&c).unwrap() = Tile::Chair;
+                        if cnt >= 5 {
+                            next[&c] = Tile::Chair;
+                            break;
+                        }
                     }
                 }
             }
@@ -341,7 +153,7 @@ pub fn part2(input: &TileGrid) -> usize {
             break;
         }
     }
-    next.tiles.iter().filter(|t| *t == &Tile::Occupied).count()
+    next.iter().filter(|t| *t == &Tile::Occupied).count()
 }
 
 #[test]
@@ -366,6 +178,6 @@ LLLLLLLLLL
 L.LLLLLL.L
 L.LLLLL.LL";
     let d = load_input(data.lines());
-    //assert_eq!(part1(&d), 37);
+    assert_eq!(part1(&d), 37);
     assert_eq!(part2(&d), 26);
 }

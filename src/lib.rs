@@ -7,6 +7,8 @@ use std::io::{self, BufRead, BufReader};
 use std::iter::FromIterator;
 use std::path::Path;
 
+pub mod grid;
+
 macro_rules! advent{
     ($($mod:ident),*) => {
          $(pub mod $mod;)*
