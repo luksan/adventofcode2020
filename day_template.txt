@@ -1,8 +1,8 @@
 
 const INPUT_FILE: &str = "data/dayN.txt";
 
-type LineType = String;
-type LineContainer = Vec<LineType>;
+pub type LineType = String;
+pub type LineContainer = Vec<LineType>;
 
 pub fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> LineContainer {
     line_source.into_iter().map(parse).collect()
