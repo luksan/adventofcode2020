@@ -1,15 +1,18 @@
+use crate::GroupBlankLine;
 use itertools::Itertools;
 use std::str::FromStr;
 
-type Passport = Vec<(FieldType, String)>;
+const INPUT_FILE: &str = "data/day4.txt";
 
-fn load_groups() -> Vec<Passport> {
-    crate::load_input_groups("data/day4.txt", parse_group)
+pub type Passport = Vec<(FieldType, String)>;
+
+pub fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Vec<Passport> {
+    line_source.into_iter().group_by_blanks(parse_group)
 }
 
-fn parse_group(group_iter: &mut (dyn Iterator<Item = String>)) -> Passport {
+fn parse_group<S: AsRef<str>>(group_iter: &mut (dyn Iterator<Item = S>)) -> Passport {
     group_iter.fold(Passport::with_capacity(8), |mut passport, line| {
-        passport.extend(line.split_ascii_whitespace().map(|field| {
+        passport.extend(line.as_ref().split_ascii_whitespace().map(|field| {
             field
                 .split(':')
                 .next_tuple()
@@ -21,7 +24,7 @@ fn parse_group(group_iter: &mut (dyn Iterator<Item = String>)) -> Passport {
 }
 
 #[derive(PartialEq, Debug)]
-enum FieldType {
+pub enum FieldType {
     Byr, //(Birth Year)
     Iyr, //(Issue Year)
     Eyr, //(Expiration Year)
@@ -92,7 +95,7 @@ fn part2(passports: &[Passport]) -> usize {
 
 #[test]
 fn real_data() {
-    let x = load_groups();
+    let x = load_input(crate::load_strings(INPUT_FILE));
     assert_eq!(x.len(), 282);
 
     assert_eq!(x[0].len(), 8);
@@ -100,4 +103,25 @@ fn real_data() {
 
     assert_eq!(part1(&x), 226);
     assert_eq!(part2(&x), 160);
+}
+
+#[test]
+fn test_data() {
+    let d = // Example
+"ecl:gry pid:860033327 eyr:2020 hcl:#fffffd
+byr:1937 iyr:2017 cid:147 hgt:183cm
+
+iyr:2013 ecl:amb cid:350 eyr:2023 pid:028048884
+hcl:#cfa07d byr:1929
+
+hcl:#ae17e1 iyr:2013
+eyr:2024
+ecl:brn pid:760753108 byr:1931
+hgt:179cm
+
+hcl:#cfa07d eyr:2025 pid:166559648
+iyr:2011 ecl:brn hgt:59in";
+    let d = load_input(d.lines());
+    assert_eq!(part1(&d), 2);
+    assert_eq!(part2(&d), 2);
 }

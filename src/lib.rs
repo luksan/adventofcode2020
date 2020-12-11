@@ -43,18 +43,27 @@ where
         .collect()
 }
 
-pub fn load_input_groups<C, R, P, Q>(path: P, group_parser: C) -> Q
+pub trait GroupBlankLine<I, S> {
+    fn group_by_blanks<C, R, Q>(self, group_parser: C) -> Q
+    where
+        C: Fn(&mut (dyn Iterator<Item = S>)) -> R,
+        Q: FromIterator<R>;
+}
+
+impl<I, S> GroupBlankLine<I, S> for I
 where
-    P: AsRef<Path>,
-    C: Fn(&mut (dyn Iterator<Item = String>)) -> R,
-    Q: FromIterator<R>,
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
 {
-    buf_reader(path)
-        .lines()
-        .map(|l| l.unwrap())
-        .group_by(|line| line.is_empty())
-        .into_iter()
-        .filter(|(empty, _)| !empty)
-        .map(|(_, mut group)| group_parser(&mut group))
-        .collect()
+    fn group_by_blanks<C, R, Q>(self, group_parser: C) -> Q
+    where
+        C: Fn(&mut (dyn Iterator<Item = S>)) -> R,
+        Q: FromIterator<R>,
+    {
+        self.group_by(|line| line.as_ref().is_empty())
+            .into_iter()
+            .filter(|(empty, _)| !empty)
+            .map(|(_, mut group)| group_parser(&mut group))
+            .collect()
+    }
 }
