@@ -9,8 +9,7 @@ pub fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> L
 }
 
 fn parse<S: AsRef<str>>(s: S) -> LineType {
-    let line = s.as_ref();
-    line.parse::<LineType>().unwrap()
+    s.as_ref().parse::<LineType>().unwrap()
 }
 
 pub fn part1(_lines: &LineContainer) -> usize {
