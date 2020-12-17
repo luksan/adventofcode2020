@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Error, Result};
+use anyhow::{Context, Error, Result};
 use itertools::Itertools;
 use std::collections::hash_map::RandomState;
 use std::collections::HashSet;
@@ -64,6 +64,14 @@ impl<T> From<T> for IterWrap<T> {
     }
 }
 
+fn parse_ticket<S: AsRef<str>>(line: S) -> Result<Vec<u32>, Error> {
+    line.as_ref()
+        .split(',')
+        .map(|n| n.parse::<u32>())
+        .collect::<Result<Vec<_>, _>>()
+        .context("Ticket parsing error")
+}
+
 impl<I: Iterator<Item = S>, S: AsRef<str>> TryFrom<IterWrap<I>> for Input {
     type Error = Error;
 
@@ -77,33 +85,17 @@ impl<I: Iterator<Item = S>, S: AsRef<str>> TryFrom<IterWrap<I>> for Input {
                 break;
             }
             let (_name, ranges) = s.split(": ").collect_tuple().context("Rule name failure")?;
-            let mut ri = ranges.split(" or ");
-            rules.push(Rule([
-                ri.next().context("rule 1 split error")?.parse()?,
-                ri.next().context("rule 2 split error")?.parse()?,
-            ]))
+            let (r1, r2) = ranges.split(" or ").collect_tuple().context("Range err")?;
+            rules.push(Rule([r1.parse()?, r2.parse()?]))
         }
 
         lines.next(); // skip "your ticket:"
-        let my_ticket;
-        if let Some(line) = lines.next() {
-            let s = line.as_ref();
-            my_ticket = s.split(',').map(|n| n.parse()).collect::<Result<_, _>>()?;
-        } else {
-            bail!("My ticket not found!");
-        }
-        // skip 2 lines
-        lines.next();
-        lines.next();
+        let my_ticket = parse_ticket(lines.next().context("My ticket not found!")?)?;
 
-        let tickets = lines
-            .map(|line| {
-                line.as_ref()
-                    .split(',')
-                    .map(|n| n.parse::<u32>())
-                    .collect::<Result<Vec<_>, _>>()
-            })
-            .collect::<Result<Vec<_>, _>>()?;
+        lines.next(); // blank
+        lines.next(); // nearby tickets:
+
+        let tickets = lines.map(parse_ticket).collect::<Result<_, _>>()?;
 
         Ok(Self {
             rules,
