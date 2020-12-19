@@ -10,23 +10,17 @@ pub type RuleId = usize;
 
 pub fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Input {
     let mut lines = line_source.into_iter();
-    let mut rules = HashMap::new();
-    for line in &mut lines {
-        let line = line.as_ref();
-        if line.is_empty() {
-            break;
-        }
-        let (id, rule) = parse_rule(line);
-        rules.insert(id, rule);
-    }
     Input {
-        rules,
+        rules: (&mut lines)
+            .take_while(|l| !l.as_ref().is_empty())
+            .map(parse_rule)
+            .collect(),
         messages: lines.map(|s| s.as_ref().to_owned()).collect(),
     }
 }
 
-fn parse_rule(s: &str) -> (RuleId, Vec<Token>) {
-    let (id_str, s) = s.split(':').collect_tuple().unwrap();
+fn parse_rule<S: AsRef<str>>(s: S) -> (RuleId, Vec<Token>) {
+    let (id_str, s) = s.as_ref().split(':').collect_tuple().unwrap();
     let id: RuleId = id_str.parse().unwrap();
     (
         id,
@@ -43,6 +37,7 @@ fn parse_rule(s: &str) -> (RuleId, Vec<Token>) {
 }
 
 pub type RuleSet = HashMap<RuleId, Vec<Token>>;
+
 pub struct Input {
     rules: RuleSet,
     messages: Vec<String>,
@@ -55,61 +50,60 @@ pub enum Token {
     RuleId(RuleId),
 }
 
-fn expand_rule(id: RuleId, rules: &RuleSet) -> String {
-    let mut ret = "(?:".to_string();
+fn expand_rule(id: RuleId, ret: &mut String, rules: &RuleSet) {
+    ret.push_str("(?:");
     for tok in rules.get(&id).unwrap() {
         match tok {
-            Token::A => return "a".to_string(),
-            Token::B => return "b".to_string(),
+            Token::A => ret.push('a'),
+            Token::B => ret.push('b'),
             Token::Or => ret.push('|'),
-            Token::RuleId(id) => ret.push_str(&expand_rule(*id, rules)),
+            Token::RuleId(id) => expand_rule(*id, ret, rules),
         }
     }
     ret.push(')');
-    ret
 }
 
-fn expand_rule2(id: RuleId, rules: &RuleSet) -> String {
-    let mut ret = "(?:".to_string();
+fn expand_rule2(id: RuleId, ret: &mut String, rules: &RuleSet) {
+    ret.push_str("(?:");
     if id == 8 {
-        ret.push_str(expand_rule(42, rules).as_str());
+        expand_rule(42, ret, rules);
         ret.push_str("+)");
-        return ret;
+        return;
     }
     if id == 11 {
-        let r42 = expand_rule(42, rules);
-        let r31 = expand_rule(31, rules);
+        let mut r31 = String::new();
+        let mut r42 = String::new();
+        expand_rule(31, &mut r31, rules);
+        expand_rule(42, &mut r42, rules);
         for n in 1..7 {
-            write!(ret, "({}{{{}}}{}{{{}}})|", &r42, n, &r31, n).unwrap();
+            write!(ret, "(?:{}{{{}}}{}{{{}}})|", &r42, n, &r31, n).unwrap();
         }
         ret.pop();
         ret.push(')');
-        return ret;
+        return;
     }
-
     for tok in rules.get(&id).unwrap() {
         match tok {
-            Token::A => return "a".to_string(),
-            Token::B => return "b".to_string(),
+            Token::A => ret.push('a'),
+            Token::B => ret.push('b'),
             Token::Or => ret.push('|'),
-            Token::RuleId(id) => ret.push_str(&expand_rule2(*id, rules)),
+            Token::RuleId(id) => expand_rule2(*id, ret, rules),
         }
     }
     ret.push(')');
-    ret
 }
 
 pub fn part1(input: &Input) -> usize {
-    let mut r0 = expand_rule(0, &input.rules);
-    r0.insert_str(0, "^(?:");
+    let mut r0 = String::from("^(?:");
+    expand_rule(0, &mut r0, &input.rules);
     r0.push_str(")$");
     let re = Regex::new(&r0).unwrap();
     input.messages.iter().filter(|m| re.is_match(&m)).count()
 }
 
 pub fn part2(input: &Input) -> usize {
-    let mut r0 = expand_rule2(0, &input.rules);
-    r0.insert_str(0, "^(?:");
+    let mut r0 = String::from("^(?:");
+    expand_rule2(0, &mut r0, &input.rules);
     r0.push_str(")$");
     let re = Regex::new(&r0).unwrap();
     input.messages.iter().filter(|m| re.is_match(&m)).count()
