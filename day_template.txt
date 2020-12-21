@@ -1,10 +1,10 @@
 
 const INPUT_FILE: &str = "data/dayN.txt";
 
-pub type LineType = String;
-pub type LineContainer = Vec<LineType>;
+type LineType = String;
+type LineContainer = Vec<LineType>;
 
-pub fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> LineContainer {
+fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> LineContainer {
     line_source.into_iter().map(parse).collect()
 }
 
@@ -12,11 +12,11 @@ fn parse<S: AsRef<str>>(s: S) -> LineType {
     s.as_ref().parse::<LineType>().unwrap()
 }
 
-pub fn part1(_lines: &LineContainer) -> usize {
+fn part1(_lines: &LineContainer) -> usize {
     0
 }
 
-pub fn part2(_lines: &LineContainer) -> usize {
+fn part2(_lines: &LineContainer) -> usize {
     0
 }
 
