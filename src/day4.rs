@@ -69,14 +69,14 @@ fn part2(passports: &[Passport]) -> usize {
             return false;
         }
         p.iter().all(|(t, val)| match t {
-            FieldType::Byr => val.parse::<u32>().map_or(false, |y| y >= 1920 && y <= 2002),
-            FieldType::Iyr => val.parse::<u32>().map_or(false, |y| y >= 2010 && y <= 2020),
-            FieldType::Eyr => val.parse::<u32>().map_or(false, |y| y >= 2020 && y <= 2030),
+            FieldType::Byr => val.parse().map_or(false, |y| (1920..=2002).contains(&y)),
+            FieldType::Iyr => val.parse().map_or(false, |y| (2010..=2020).contains(&y)),
+            FieldType::Eyr => val.parse().map_or(false, |y| (2020..=2030).contains(&y)),
             FieldType::Hgt => {
                 scan_fmt::scan_fmt!(val, "{d}{}", u32, String).map_or(false, |(len, unit)| {
                     match unit.as_str() {
-                        "cm" => len >= 150 && len <= 193,
-                        "in" => len >= 59 && len <= 76,
+                        "cm" => (150..=193).contains(&len),
+                        "in" => (59..=76).contains(&len),
                         _ => false,
                     }
                 })

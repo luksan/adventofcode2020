@@ -3,7 +3,6 @@ use itertools::Itertools;
 use std::collections::hash_map::RandomState;
 use std::collections::HashSet;
 use std::convert::{TryFrom, TryInto};
-use std::iter::FromIterator;
 use std::ops::Deref;
 use std::str::FromStr;
 
@@ -132,7 +131,7 @@ pub fn part2(input: &Input) -> u64 {
     // order index is the index for the ticket field
     // each hashset contains all matching rules for the ticket field
     let mut order: Vec<HashSet<u32, RandomState>> =
-        vec![HashSet::from_iter(0..field_cnt); field_cnt as usize];
+        vec![(0..field_cnt).collect(); field_cnt as usize];
 
     for ticket in valid_tickets {
         for (field, matching) in ticket.iter().zip(order.iter_mut()) {
