@@ -1,65 +1,126 @@
 use crate::GroupBlankLine;
-use itertools::Itertools;
-use std::collections::VecDeque;
+use std::collections::hash_map::DefaultHasher;
+use std::collections::{HashSet, VecDeque};
+use std::hash::{Hash, Hasher};
 
 const INPUT_FILE: &str = "data/day22.txt";
 
-type Players = Vec<Player>;
+type Card = u8;
+type Player = VecDeque<Card>;
 
-fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Players {
+fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Vec<Player> {
     line_source.into_iter().group_by_blanks(parse_player)
 }
 
 fn parse_player<S: AsRef<str>>(iter: &mut dyn Iterator<Item = S>) -> Player {
     iter.next();
-    Player {
-        cards: iter.map(|s| s.as_ref().parse().unwrap()).collect(),
+    iter.map(|s| s.as_ref().parse().unwrap()).collect()
+}
+
+fn highest_card_idx(cards: &[Card; 2]) -> Winner {
+    if cards[0] > cards[1] {
+        0
+    } else {
+        1
     }
 }
 
-type Card = usize;
+type Winner = usize;
 
-#[derive(Debug, Clone)]
-struct Player {
-    cards: VecDeque<Card>,
-}
+#[derive(Hash)]
+struct GameState([VecDeque<Card>; 2]);
 
-impl Player {
-    fn draw(&mut self) -> Card {
-        self.cards.pop_front().unwrap()
+impl GameState {
+    fn from_input(input: &[Player]) -> GameState {
+        GameState([input[0].clone(), input[1].clone()])
     }
 
-    fn receive(&mut self, card: Card) {
-        self.cards.push_back(card)
+    fn state_hash(&self) -> u64 {
+        let hs = &mut DefaultHasher::new();
+        self.hash(hs);
+        hs.finish()
     }
-}
 
-fn part1(input: &Players) -> usize {
-    let mut players = (*input).clone();
-    loop {
-        if players.iter().any(|p| p.cards.is_empty()) {
-            break;
+    fn draw(&mut self) -> [Card; 2] {
+        [
+            self.0[0].pop_front().unwrap(),
+            self.0[1].pop_front().unwrap(),
+        ]
+    }
+
+    fn receive_cards(&mut self, winner: Winner, mut cards: [Card; 2]) {
+        cards.swap(0, winner);
+        self.0[winner].extend(&cards);
+    }
+
+    fn check_empty_hand(&self) -> Option<Winner> {
+        match (self.0[0].is_empty(), self.0[1].is_empty()) {
+            (true, false) => Some(1),
+            (false, true) => Some(0),
+            (false, false) => None,
+            _ => unreachable!("The cards have dissapeared!"),
         }
-        let mut played = players.iter_mut().map(|p| p.draw()).collect_vec();
-        let i = played
-            .iter()
-            .enumerate()
-            .max_by_key(|(_, &c)| c)
-            .map(|(i, _)| i)
-            .unwrap();
-        players[i].receive(played.remove(i));
-        players[i].receive(played.remove(0));
     }
 
-    players
-        .iter()
-        .flat_map(|p| p.cards.iter().rev())
-        .enumerate()
-        .fold(0, |score, (mult, &card)| score + (mult + 1) * card)
+    fn final_result(self) -> usize {
+        self.0
+            .iter()
+            .flat_map(|p| p.iter().rev())
+            .enumerate()
+            .fold(0, |score, (mult, card)| {
+                score + (mult + 1) * (*card as usize)
+            })
+    }
+
+    fn sub_game(&self, card_cnt: &[Card; 2]) -> Option<GameState> {
+        let p = &self.0;
+        if p[0].len() < card_cnt[0] as usize || p[1].len() < card_cnt[1] as usize {
+            return None;
+        }
+        Some(GameState([
+            self.0[0]
+                .iter()
+                .take(card_cnt[0] as usize)
+                .copied()
+                .collect(),
+            self.0[1]
+                .iter()
+                .take(card_cnt[1] as usize)
+                .copied()
+                .collect(),
+        ]))
+    }
 }
 
-fn part2(_lines: &Players) -> usize {
-    0
+fn part1(input: &[Player]) -> usize {
+    let mut gs = GameState::from_input(input);
+    while gs.check_empty_hand().is_none() {
+        let played = gs.draw();
+        gs.receive_cards(highest_card_idx(&played), played);
+    }
+    gs.final_result()
+}
+
+fn recursive_combat(gs: &mut GameState) -> Winner {
+    let mut history = HashSet::<u64>::new();
+    while history.insert(gs.state_hash()) {
+        if let Some(winner) = gs.check_empty_hand() {
+            return winner;
+        }
+        let played = gs.draw();
+        let round_winner = match gs.sub_game(&played) {
+            Some(mut sub_game) => recursive_combat(&mut sub_game),
+            None => highest_card_idx(&played),
+        };
+        gs.receive_cards(round_winner, played);
+    }
+    0 // Repeated state is a win for player 1
+}
+
+fn part2(input: &[Player]) -> usize {
+    let mut gs = GameState::from_input(input);
+    recursive_combat(&mut gs);
+    gs.final_result()
 }
 
 #[test]
@@ -67,7 +128,7 @@ fn real_data() {
     let d = load_input(crate::load_strings(INPUT_FILE));
     assert_eq!(d.len(), 2);
     assert_eq!(part1(&d), 31308);
-    // assert_eq!(part2(&d), 1);
+    assert_eq!(part2(&d), 33647);
 }
 
 #[test]
@@ -88,5 +149,5 @@ Player 2:
 10";
     let d = load_input(data.lines());
     assert_eq!(part1(&d), 306);
-    // assert_eq!(part2(&d), 1);
+    assert_eq!(part2(&d), 291);
 }
