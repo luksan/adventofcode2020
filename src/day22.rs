@@ -1,7 +1,8 @@
 use crate::GroupBlankLine;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashSet, VecDeque};
-use std::hash::{Hash, Hasher};
+use std::convert::TryInto;
+use std::hash::{BuildHasherDefault, Hash, Hasher};
 
 const INPUT_FILE: &str = "data/day22.txt";
 
@@ -101,8 +102,25 @@ fn part1(input: &[Player]) -> usize {
     gs.final_result()
 }
 
+#[derive(Default)]
+struct SelfIsHash(u64);
+
+impl Hasher for SelfIsHash {
+    fn finish(&self) -> u64 {
+        self.0
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        self.0 = u64::from_le_bytes(bytes.try_into().unwrap())
+    }
+
+    fn write_u64(&mut self, i: u64) {
+        self.0 = i
+    }
+}
+
 fn recursive_combat(gs: &mut GameState) -> Winner {
-    let mut history = HashSet::<u64>::new();
+    let mut history = HashSet::<u64, BuildHasherDefault<SelfIsHash>>::default();
     while history.insert(gs.state_hash()) {
         if let Some(winner) = gs.check_empty_hand() {
             return winner;
