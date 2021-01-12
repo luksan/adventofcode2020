@@ -23,7 +23,6 @@ fn part2(_lines: &LineContainer) -> usize {
 #[test]
 fn real_data() {
     let d = load_input(crate::load_strings(INPUT_FILE));
-    assert_eq!(d.len(), 1);
     assert_eq!(part1(&d), 1);
     // assert_eq!(part2(&d), 1);
 }
