@@ -4,9 +4,6 @@ use std::cell::Cell;
 use std::cmp::Ordering;
 use std::convert::TryInto;
 
-type Cup = u32;
-type Cups = Vec<Cup>;
-
 fn parse(s: &str) -> Circle {
     Circle {
         cups: s.chars().map(|c| c.to_digit(10).unwrap() as Cup).collect(),
@@ -14,116 +11,98 @@ fn parse(s: &str) -> Circle {
     }
 }
 
-type Ptr = u32;
-type Link = Cell<Ptr>;
+type Cup = u32;
+type Link = Cell<Cup>;
 
 struct CupPtr<'a> {
     links: &'a Vec<Link>,
-    ptr: Ptr,
+    cup: Cup,
 }
 
-impl CupPtr<'_> {
-    fn new(links: &Vec<Link>, node: Ptr) -> CupPtr {
-        CupPtr { links, ptr: node }
+impl<'a> CupPtr<'a> {
+    fn new(links: &Vec<Link>, node: Cup) -> CupPtr {
+        CupPtr { links, cup: node }
     }
 
-    fn next(&self) -> CupPtr {
+    fn next(&self) -> CupPtr<'a> {
         CupPtr {
-            links: self.links,
-            ptr: self.links[self.ptr as usize].get(),
+            links: &*self.links,
+            cup: self.links[self.cup as usize].get(),
         }
     }
 
-    fn set_next(&self, next_cup: Ptr) {
-        self.links[self.ptr as usize].set(next_cup)
+    fn set_next(&self, next_cup: Cup) {
+        self.links[self.cup as usize].set(next_cup)
     }
 }
 
 struct LinkedCircle {
-    cups: [Cup; 9],
-    links: Vec<Cell<Ptr>>,
-    current: Ptr,
+    links: Vec<Cell<Cup>>,
+    current: Cup,
 }
 
 impl LinkedCircle {
-    const CUP_CNT: usize = 1_000_000;
+    const CUP_CNT: u32 = 1_000_000;
 
     fn from_circle(circle: &Circle) -> LinkedCircle {
-        let mut links: Vec<_> = (1..=Self::CUP_CNT).map(|l| Cell::new(l as u32)).collect();
-        links.last_mut().unwrap().set(0);
+        let links = (0..=Self::CUP_CNT).map(|l| Cell::new(l + 1)).collect();
+
+        let mut ptr = CupPtr::new(&links, (links.len() - 1) as Cup);
+        for cup in &circle.cups {
+            ptr.set_next(*cup);
+            ptr = ptr.next();
+        }
+        ptr.set_next(10);
 
         LinkedCircle {
-            cups: circle.cups.as_slice().try_into().unwrap(),
             links,
-            current: circle.current as Ptr,
+            current: circle.cups[0],
         }
     }
 
-    fn new_ptr(&self, node: Ptr) -> CupPtr {
+    fn new_ptr(&self, node: Cup) -> CupPtr {
         CupPtr::new(&self.links, node)
-    }
-
-    fn read_ptr(&self, ptr: Ptr) -> Cup {
-        if ptr < self.cups.len() as Ptr {
-            self.cups[ptr as usize]
-        } else {
-            (ptr + 1) as Cup
-        }
-    }
-
-    fn find_cup(&self, cup: Cup) -> Ptr {
-        if cup <= 9 {
-            for ptr in 0..9 {
-                if self.cups[ptr] == cup {
-                    return ptr as Ptr;
-                }
-            }
-            unreachable!("Mhmm")
-        }
-        (cup - 1) as Ptr
     }
 
     fn single_move(&mut self) {
         let current = self.new_ptr(self.current);
-        let curr_label = self.read_ptr(current.ptr);
         let removed = self.take_three(&current);
 
-        let mut dest_label = curr_label - 1;
-        let dest: Ptr = loop {
-            if dest_label == 0 {
-                dest_label = Self::CUP_CNT as Cup;
+        let mut maybe_dest = self.current - 1;
+        let dest = loop {
+            if maybe_dest == 0 {
+                maybe_dest = Self::CUP_CNT as Cup;
             }
-            let ptr = self.find_cup(dest_label);
-            if !removed.contains(&ptr) {
-                break ptr;
+            if !removed.contains(&maybe_dest) {
+                break maybe_dest;
             }
-            dest_label -= 1;
+            maybe_dest -= 1;
         };
 
         self.place_three(dest, removed);
-        self.current = current.next().ptr;
+        self.current = current.next().cup;
     }
 
-    fn take_three(&self, right_of: &CupPtr) -> [Ptr; 3] {
+    fn take_three(&self, right_of: &CupPtr) -> [Cup; 3] {
         let first = right_of.next();
         let n2 = first.next();
         let third = n2.next();
         let fourth = third.next();
-        right_of.set_next(fourth.ptr);
-        [first.ptr, n2.ptr, third.ptr]
+        right_of.set_next(fourth.cup);
+        [first.cup, n2.cup, third.cup]
     }
 
-    fn place_three(&self, right_of: Ptr, cups: [Ptr; 3]) {
+    fn place_three(&self, right_of: Cup, cups: [Cup; 3]) {
         let right_of = self.new_ptr(right_of);
         let third = self.new_ptr(cups[2]);
         let fourth = right_of.next();
         right_of.set_next(cups[0]);
-        third.set_next(fourth.ptr);
+        third.set_next(fourth.cup);
     }
 }
 
 #[derive(Clone, Debug)]
-struct Circle {
+pub struct Circle {
     cups: ArrayVec<[Cup; 9]>,
     current: usize,
 }
@@ -185,11 +164,17 @@ fn part2(circle: &Circle) -> usize {
         circle.single_move();
     }
 
-    let cup1 = circle.new_ptr(circle.find_cup(1));
-    let n1 = cup1.next();
+    let n1 = circle.new_ptr(1).next();
     let n2 = n1.next();
+    n1.cup as usize * n2.cup as usize
+}
 
-    circle.read_ptr(n1.ptr) as usize * circle.read_ptr(n2.ptr) as usize
+pub fn bench_input() -> Circle {
+    parse("219748365")
+}
+
+pub fn bench(input: &Circle) {
+    part2(&input);
 }
 
 #[test]
