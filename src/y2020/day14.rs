@@ -21,7 +21,7 @@ pub enum MaskBit {
     X,
 }
 
-type BitMask = ArrayVec<[MaskBit; 36]>;
+type BitMask = ArrayVec<MaskBit, 36>;
 
 #[derive(Debug)]
 pub enum Instr {

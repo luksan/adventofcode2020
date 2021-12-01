@@ -103,7 +103,7 @@ impl LinkedCircle {
 
 #[derive(Clone, Debug)]
 pub struct Circle {
-    cups: ArrayVec<[Cup; 9]>,
+    cups: ArrayVec<Cup, 9>,
     current: usize,
 }
 
