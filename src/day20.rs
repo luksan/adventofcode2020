@@ -1,4 +1,4 @@
-#![allow(unused_imports)]
+#![allow(unused_imports, unused_mut, unused_variables)]
 use crate::GroupBlankLine;
 use anyhow::private::kind::TraitKind;
 use counter::Counter;
