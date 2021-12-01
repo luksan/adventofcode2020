@@ -11,7 +11,7 @@ use std::marker::PhantomData;
 use std::ops::Index;
 use std::str::FromStr;
 
-const INPUT_FILE: &str = "data/day20.txt";
+const INPUT_FILE: &str = "data/2020/day20.txt";
 
 type Puzzle = Vec<Tile>;
 

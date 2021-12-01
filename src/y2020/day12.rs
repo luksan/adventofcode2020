@@ -1,7 +1,7 @@
 use std::ops::{AddAssign, Mul, MulAssign};
 use std::str::FromStr;
 
-const INPUT_FILE: &str = "data/day12.txt";
+const INPUT_FILE: &str = "data/2020/day12.txt";
 
 pub type ActionList = Vec<Action>;
 

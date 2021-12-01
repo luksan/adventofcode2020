@@ -1,6 +1,6 @@
 use std::slice::Iter;
 
-const INPUT_FILE: &str = "data/day18.txt";
+const INPUT_FILE: &str = "data/2020/day18.txt";
 
 pub type Expression = Vec<Token>;
 pub type MathProblems = Vec<Expression>;

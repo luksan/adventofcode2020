@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-const INPUT_FILE: &str = "data/day10.txt";
+const INPUT_FILE: &str = "data/2020/day10.txt";
 
 type Adapter = i32;
 type Bag = Vec<i32>;

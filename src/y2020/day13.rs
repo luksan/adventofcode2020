@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use std::iter::FromIterator;
 
-const INPUT_FILE: &str = "data/day13.txt";
+const INPUT_FILE: &str = "data/2020/day13.txt";
 
 pub fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> InputData {
     line_source.into_iter().collect()

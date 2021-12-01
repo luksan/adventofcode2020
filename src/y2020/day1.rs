@@ -1,4 +1,4 @@
-const INPUT_FILE: &str = "data/day1.txt";
+const INPUT_FILE: &str = "data/2020/day1.txt";
 
 type Entry = u32;
 type Report = Vec<Entry>;

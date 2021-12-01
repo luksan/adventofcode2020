@@ -3,7 +3,7 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::fmt::Write;
 
-const INPUT_FILE: &str = "data/day19.txt";
+const INPUT_FILE: &str = "data/2020/day19.txt";
 
 pub type LineType = String;
 pub type RuleId = usize;

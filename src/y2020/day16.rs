@@ -6,7 +6,7 @@ use std::convert::{TryFrom, TryInto};
 use std::ops::Deref;
 use std::str::FromStr;
 
-const INPUT_FILE: &str = "data/day16.txt";
+const INPUT_FILE: &str = "data/2020/day16.txt";
 
 pub fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Input {
     let i: IterWrap<_> = line_source.into_iter().into();

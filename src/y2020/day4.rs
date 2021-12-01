@@ -2,7 +2,7 @@ use crate::GroupBlankLine;
 use itertools::Itertools;
 use std::str::FromStr;
 
-const INPUT_FILE: &str = "data/day4.txt";
+const INPUT_FILE: &str = "data/2020/day4.txt";
 
 pub type Passport = Vec<(FieldType, String)>;
 

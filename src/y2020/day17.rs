@@ -1,6 +1,6 @@
 use ndarray::prelude::*;
 
-const INPUT_FILE: &str = "data/day17.txt";
+const INPUT_FILE: &str = "data/2020/day17.txt";
 
 pub type Cube = u8;
 

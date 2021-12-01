@@ -7,7 +7,7 @@ type BagRule = (SmolStr, HashMap<SmolStr, usize>);
 type Rules = HashMap<SmolStr, HashMap<SmolStr, usize>>;
 
 fn load_input() -> Rules {
-    crate::load_input("data/day7.txt", parse)
+    crate::load_input("data/2020/day7.txt", parse)
 }
 
 fn parse<S: AsRef<str>>(s: S) -> BagRule {

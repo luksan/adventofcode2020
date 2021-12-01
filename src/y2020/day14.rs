@@ -2,7 +2,7 @@ use arrayvec::ArrayVec;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-const INPUT_FILE: &str = "data/day14.txt";
+const INPUT_FILE: &str = "data/2020/day14.txt";
 
 pub type Program = Vec<Instr>;
 

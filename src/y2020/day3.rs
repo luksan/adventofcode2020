@@ -1,7 +1,7 @@
 use std::ops::Index;
 
 fn load_input() -> Vec<TreeLine> {
-    crate::load_input("data/day3.txt", parse)
+    crate::load_input("data/2020/day3.txt", parse)
 }
 
 fn parse(s: String) -> TreeLine {

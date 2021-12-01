@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::str::FromStr;
 
-const INPUT_FILE: &str = "data/day24.txt";
+const INPUT_FILE: &str = "data/2020/day24.txt";
 
 fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Vec<Coord> {
     line_source.into_iter().map(parse).collect()

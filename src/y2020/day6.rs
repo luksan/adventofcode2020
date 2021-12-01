@@ -1,7 +1,7 @@
 use crate::GroupBlankLine;
 use counter::Counter;
 
-const INPUT_FILE: &str = "data/day6.txt";
+const INPUT_FILE: &str = "data/2020/day6.txt";
 
 type Group = (usize, Counter<char>); // (size of group, answer count)
 

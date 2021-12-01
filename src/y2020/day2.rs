@@ -1,5 +1,5 @@
 fn load_input() -> Vec<(Rule, Vec<char>)> {
-    crate::load_input("data/day2.txt", parse_line)
+    crate::load_input("data/2020/day2.txt", parse_line)
 }
 
 fn parse_line<T: AsRef<str>>(line: T) -> Line {

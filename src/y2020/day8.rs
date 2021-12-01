@@ -5,7 +5,7 @@ type Instr = (InstructionSet, i32);
 type Program = Vec<Instr>;
 
 fn load_input() -> Program {
-    crate::load_input("data/day8.txt", parse)
+    crate::load_input("data/2020/day8.txt", parse)
 }
 
 fn parse<S: AsRef<str>>(s: S) -> Instr {

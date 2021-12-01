@@ -2,7 +2,7 @@ use counter::Counter;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
-const INPUT_FILE: &str = "data/day21.txt";
+const INPUT_FILE: &str = "data/2020/day21.txt";
 
 type Foodstuffs = Vec<Food>;
 

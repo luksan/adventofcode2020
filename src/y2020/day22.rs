@@ -4,7 +4,7 @@ use std::collections::{HashSet, VecDeque};
 use std::convert::TryInto;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 
-const INPUT_FILE: &str = "data/day22.txt";
+const INPUT_FILE: &str = "data/2020/day22.txt";
 
 type Card = u8;
 type Player = VecDeque<Card>;

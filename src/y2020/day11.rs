@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 
 use crate::grid::*;
 
-const INPUT_FILE: &str = "data/day11.txt";
+const INPUT_FILE: &str = "data/2020/day11.txt";
 
 pub type Row = Vec<Tile>;
 pub type TileGrid = Grid<Tile>;

@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 use std::ops::Add;
 use std::slice::Iter;
 
-const INPUT_FILE: &str = "data/day9.txt";
+const INPUT_FILE: &str = "data/2020/day9.txt";
 
 type Num = u64;
 type CypherText = Vec<Num>;
