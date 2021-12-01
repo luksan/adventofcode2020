@@ -1,5 +1,5 @@
 
-const INPUT_FILE: &str = "data/dayN.txt";
+const INPUT_FILE: &str = "data/2021/dayN.txt";
 
 type LineType = String;
 type LineContainer = Vec<LineType>;

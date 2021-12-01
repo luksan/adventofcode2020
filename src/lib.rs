@@ -9,6 +9,7 @@ use std::path::Path;
 
 pub mod grid;
 mod y2020;
+mod y2021;
 
 macro_rules! advent{
     ($($mod:ident),*) => {
