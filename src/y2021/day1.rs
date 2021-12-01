@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 const INPUT_FILE: &str = "data/2021/day1.txt";
 
 type LineType = i32;
@@ -12,29 +14,16 @@ fn parse<S: AsRef<str>>(s: S) -> LineType {
 }
 
 fn part1(lines: &LineContainer) -> usize {
-    let mut incr = 0;
-    let mut li = lines.iter();
-    let mut prev = *li.next().unwrap();
-    for l in li {
-        if *l > prev {
-            incr += 1;
-        }
-        prev = *l;
-    }
-    incr
+    lines.windows(2).filter(|w| w[1] > w[0]).count()
 }
 
 fn part2(lines: &LineContainer) -> usize {
-    let mut li = lines.windows(3).map(|win| win.iter().sum());
-    let mut prev: i32 = li.next().unwrap();
-    let mut incr = 0;
-    for w in li {
-        if w > prev {
-            incr += 1;
-        }
-        prev = w;
-    }
-    incr
+    lines
+        .windows(3)
+        .map(|w| w.iter().sum())
+        .tuple_windows::<(i32, i32)>()
+        .filter(|(prev, curr)| curr > prev)
+        .count()
 }
 
 #[test]
