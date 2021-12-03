@@ -1,5 +1,3 @@
-const INPUT_FILE: &str = "data/2021/day3.txt";
-
 type Numbers = Vec<BinNum>;
 
 fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Numbers {
@@ -96,7 +94,7 @@ fn part2(lines: &Numbers) -> usize {
 
 #[test]
 fn real_data() {
-    let d = load_input(crate::load_strings(INPUT_FILE));
+    let d = load_input(crate::load_strings(crate::data_file!()));
     assert_eq!(part1(&d), 1540244);
     assert_eq!(part2(&d), 4203981);
 }

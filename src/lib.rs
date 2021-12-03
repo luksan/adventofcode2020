@@ -2,6 +2,7 @@
 #![allow(clippy::ptr_arg)]
 
 use itertools::Itertools;
+use std::fmt::Debug;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::iter::FromIterator;
@@ -19,24 +20,39 @@ macro_rules! advent{
 
 pub(crate) use advent;
 
+pub fn module_data_file(mod_path: &str) -> String {
+    let (day, year, _root) = mod_path.rsplitn(3, "::").collect_tuple().unwrap();
+    let year = &year[1..]; // remove 'y'
+    format!("./data/{}/{}.txt", year, day)
+}
+
+#[allow(unused)]
+macro_rules! data_file {
+    () => {
+        crate::module_data_file(module_path!())
+    };
+}
+pub(crate) use data_file;
+
 pub fn buf_reader<P>(path: P) -> BufReader<File>
 where
-    P: AsRef<Path>,
+    P: AsRef<Path> + Debug,
 {
-    let file = File::open(path.as_ref()).unwrap();
+    let file =
+        File::open(path.as_ref()).unwrap_or_else(|_| panic!("Failed to open file {:?}", path));
     io::BufReader::new(file)
 }
 
 pub fn load_strings<P>(path: P) -> Box<dyn Iterator<Item = String>>
 where
-    P: AsRef<Path>,
+    P: AsRef<Path> + Debug,
 {
     Box::new(buf_reader(path).lines().map(|l| l.unwrap()))
 }
 
 pub fn load_input<C, R, P, Q>(path: P, conv: C) -> Q
 where
-    P: AsRef<Path>,
+    P: AsRef<Path> + Debug,
     C: FnMut(String) -> R,
     Q: FromIterator<R>,
 {
