@@ -1,5 +1,6 @@
 use std::cmp::{max, min};
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
+use std::iter::Enumerate;
 use std::ops::{Index, IndexMut};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -85,14 +86,17 @@ impl<T> Grid<T> {
         }
     }
 
-    pub fn iter(&self) -> std::slice::Iter<T> {
-        self.tiles.iter()
+    /// Returns an iterator over all the tiles in the grid
+    pub fn iter_tiles(&self) -> AllTiles<T> {
+        AllTiles::new(self)
     }
 
     pub fn neighbours(&self, coord: &Coord) -> NeighboursIter<T> {
         NeighboursIter::new(coord, self)
     }
 
+    /// Returns an iterator for the tiles along the given line. `start` is not included
+    /// in the set.
     pub fn line(&self, start: &Coord, direction: (i32, i32)) -> GridLine<'_, T> {
         GridLine::new(self, start, direction)
     }
@@ -113,6 +117,17 @@ impl<T> Grid<T> {
         (coord.y * self.width + coord.x) as usize
     }
 
+    fn idx_to_coord(&self, idx: usize) -> Coord {
+        assert!(idx < self.tiles.len(), "Index outside of grid.");
+        let y = idx / self.width as usize;
+        let x = idx - y * self.width as usize;
+
+        Coord {
+            x: x as i32,
+            y: y as i32,
+        }
+    }
+
     pub fn valid_coord(&self, c: &Coord) -> bool {
         !(c.x < 0 || c.x >= self.width || c.y < 0 || c.y >= self.height)
     }
@@ -124,6 +139,19 @@ impl<T: Clone> Clone for Grid<T> {
             tiles: self.tiles.clone(),
             ..*self
         }
+    }
+}
+
+impl<T: Debug> Debug for Grid<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let width = f.width().unwrap_or(1);
+        for row in self.tiles.chunks_exact(self.width as usize) {
+            for t in row {
+                write!(f, "{:width$?} ", t, width = width)?;
+            }
+            writeln!(f)?;
+        }
+        Ok(())
     }
 }
 
@@ -158,6 +186,32 @@ impl<T: Display> Display for Grid<T> {
 impl<T: PartialEq> PartialEq for Grid<T> {
     fn eq(&self, other: &Self) -> bool {
         self.tiles == other.tiles
+    }
+}
+
+pub struct AllTiles<'a, T> {
+    grid: &'a Grid<T>,
+    iter: Enumerate<std::slice::Iter<'a, T>>,
+}
+
+impl<'a, T> AllTiles<'a, T> {
+    fn new(grid: &'a Grid<T>) -> Self {
+        Self {
+            grid,
+            iter: grid.tiles.iter().enumerate(),
+        }
+    }
+}
+
+impl<'a, T> Iterator for AllTiles<'a, T> {
+    type Item = (Coord, &'a T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((idx, tile)) = self.iter.next() {
+            Some((self.grid.idx_to_coord(idx), tile))
+        } else {
+            None
+        }
     }
 }
 

@@ -96,7 +96,9 @@ pub fn part1(grid: &TileGrid) -> usize {
             break;
         }
     }
-    next.iter().filter(|t| *t == &Tile::Occupied).count()
+    next.iter_tiles()
+        .filter(|(_c, &t)| t == Tile::Occupied)
+        .count()
 }
 
 pub fn part2(input: &TileGrid) -> usize {
@@ -153,7 +155,9 @@ pub fn part2(input: &TileGrid) -> usize {
             break;
         }
     }
-    next.iter().filter(|t| *t == &Tile::Occupied).count()
+    next.iter_tiles()
+        .filter(|(_c, &t)| t == Tile::Occupied)
+        .count()
 }
 
 #[test]

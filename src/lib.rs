@@ -32,6 +32,7 @@ macro_rules! data_file {
         crate::module_data_file(module_path!())
     };
 }
+#[allow(unused)]
 pub(crate) use data_file;
 
 pub fn buf_reader<P>(path: P) -> BufReader<File>
