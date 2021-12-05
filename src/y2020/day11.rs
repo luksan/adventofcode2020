@@ -66,29 +66,29 @@ pub fn part1(grid: &TileGrid) -> usize {
         let grid = next;
         next = grid.clone();
         'coords: for coord in grid.coords() {
-            match grid[&coord] {
+            match grid[coord] {
                 Tile::Floor => {}
                 Tile::Occupied => {
                     let mut cnt = 0;
-                    for t in grid.neighbours(&coord) {
+                    for t in grid.neighbours(coord) {
                         match t {
                             Tile::Occupied => cnt += 1,
                             Tile::Floor => continue,
                             Tile::Chair => {}
                         }
                         if cnt >= 4 {
-                            next[&coord] = Tile::Chair;
+                            next[coord] = Tile::Chair;
                             break;
                         }
                     }
                 }
                 Tile::Chair => {
-                    for t in grid.neighbours(&coord) {
+                    for t in grid.neighbours(coord) {
                         if matches!(t, &Tile::Occupied) {
                             continue 'coords;
                         }
                     }
-                    next[&coord] = Tile::Occupied
+                    next[coord] = Tile::Occupied
                 }
             }
         }
@@ -117,11 +117,11 @@ pub fn part2(input: &TileGrid) -> usize {
         let grid = next;
         next = grid.clone();
         'next_tile: for c in grid.coords() {
-            match grid[&c] {
+            match grid[c] {
                 Tile::Floor => {}
                 Tile::Chair => {
                     for d in &directions {
-                        for t in grid.line(&c, *d) {
+                        for t in grid.line(c, *d) {
                             match t {
                                 Tile::Occupied => continue 'next_tile,
                                 Tile::Floor => continue,
@@ -129,12 +129,12 @@ pub fn part2(input: &TileGrid) -> usize {
                             }
                         }
                     }
-                    next[&c] = Tile::Occupied;
+                    next[c] = Tile::Occupied;
                 }
                 Tile::Occupied => {
                     let mut cnt = 0;
                     for d in &directions {
-                        for t in grid.line(&c, *d) {
+                        for t in grid.line(c, *d) {
                             match t {
                                 Tile::Occupied => cnt += 1,
                                 Tile::Floor => continue,
@@ -143,7 +143,7 @@ pub fn part2(input: &TileGrid) -> usize {
                             break;
                         }
                         if cnt >= 5 {
-                            next[&c] = Tile::Chair;
+                            next[c] = Tile::Chair;
                             break;
                         }
                     }

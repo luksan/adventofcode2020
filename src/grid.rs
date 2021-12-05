@@ -1,7 +1,9 @@
+use itertools::Itertools;
 use std::cmp::{max, min};
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::Enumerate;
 use std::ops::{Index, IndexMut};
+use std::str::FromStr;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Coord {
@@ -19,6 +21,29 @@ impl Coord {
 
     pub fn line(&self, direction: (i32, i32)) -> LineIter {
         LineIter::new(direction, &self)
+    }
+
+    pub fn line_to(&self, end: Coord) -> LineTo {
+        let dx = (end.x - self.x).signum();
+        let dy = (end.y - self.y).signum();
+        LineTo {
+            curr: *self,
+            direction: (dx, dy),
+            end,
+        }
+    }
+}
+
+impl FromStr for Coord {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (x, y) = s
+            .split(',')
+            .map(|n| n.parse().unwrap())
+            .collect_tuple()
+            .unwrap();
+        Ok(Self { x, y })
     }
 }
 
@@ -46,6 +71,27 @@ impl Iterator for LineIter {
     }
 }
 
+pub struct LineTo {
+    curr: Coord,
+    direction: (i32, i32),
+    end: Coord,
+}
+
+impl Iterator for LineTo {
+    type Item = Coord;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (dx, dy) = self.direction;
+        if self.curr.x * dx > self.end.x * dx || self.curr.y * dy > self.end.y * dy {
+            return None;
+        }
+        let next = Some(self.curr);
+        self.curr.x += self.direction.0;
+        self.curr.y += self.direction.1;
+        next
+    }
+}
+
 pub struct Grid<T> {
     width: i32,
     height: i32,
@@ -69,14 +115,14 @@ impl<T> Grid<T> {
         self.height
     }
 
-    pub fn get(&self, coord: &Coord) -> Option<&T> {
+    pub fn get(&self, coord: Coord) -> Option<&T> {
         match self.valid_coord(coord) {
             true => Some(&self.tiles[self.coord_to_idx(coord)]),
             false => None,
         }
     }
 
-    pub fn get_mut(&mut self, coord: &Coord) -> Option<&mut T> {
+    pub fn get_mut(&mut self, coord: Coord) -> Option<&mut T> {
         match self.valid_coord(coord) {
             true => {
                 let idx = self.coord_to_idx(coord);
@@ -91,13 +137,13 @@ impl<T> Grid<T> {
         AllTiles::new(self)
     }
 
-    pub fn neighbours(&self, coord: &Coord) -> NeighboursIter<T> {
+    pub fn neighbours(&self, coord: Coord) -> NeighboursIter<T> {
         NeighboursIter::new(coord, self)
     }
 
     /// Returns an iterator for the tiles along the given line. `start` is not included
     /// in the set.
-    pub fn line(&self, start: &Coord, direction: (i32, i32)) -> GridLine<'_, T> {
+    pub fn line(&self, start: Coord, direction: (i32, i32)) -> GridLine<'_, T> {
         GridLine::new(self, start, direction)
     }
 
@@ -110,7 +156,7 @@ impl<T> Grid<T> {
         }
     }
 
-    fn coord_to_idx(&self, coord: &Coord) -> usize {
+    fn coord_to_idx(&self, coord: Coord) -> usize {
         if !self.valid_coord(coord) {
             panic!("Invalid coord to coord_to_idx {:?}", coord)
         }
@@ -128,7 +174,7 @@ impl<T> Grid<T> {
         }
     }
 
-    pub fn valid_coord(&self, c: &Coord) -> bool {
+    pub fn valid_coord(&self, c: Coord) -> bool {
         !(c.x < 0 || c.x >= self.width || c.y < 0 || c.y >= self.height)
     }
 }
@@ -155,16 +201,16 @@ impl<T: Debug> Debug for Grid<T> {
     }
 }
 
-impl<T> Index<&Coord> for Grid<T> {
+impl<T> Index<Coord> for Grid<T> {
     type Output = T;
 
-    fn index(&self, index: &Coord) -> &Self::Output {
+    fn index(&self, index: Coord) -> &Self::Output {
         &self.tiles[self.coord_to_idx(index)]
     }
 }
 
-impl<T> IndexMut<&Coord> for Grid<T> {
-    fn index_mut(&mut self, index: &Coord) -> &mut Self::Output {
+impl<T> IndexMut<Coord> for Grid<T> {
+    fn index_mut(&mut self, index: Coord) -> &mut Self::Output {
         let idx = self.coord_to_idx(index);
         &mut self.tiles[idx]
     }
@@ -248,7 +294,7 @@ pub struct NeighboursIter<'a, T> {
 }
 
 impl<'a, T> NeighboursIter<'a, T> {
-    fn new(coord: &Coord, grid: &'a Grid<T>) -> Self {
+    fn new(coord: Coord, grid: &'a Grid<T>) -> Self {
         let x_min = max(0, coord.x - 1);
         let y_min = max(0, coord.y - 1);
         Self {
@@ -256,7 +302,7 @@ impl<'a, T> NeighboursIter<'a, T> {
             x_max: min(grid.width - 1, coord.x + 1),
             x_min,
             y_max: min(grid.height - 1, coord.y + 1),
-            center: *coord,
+            center: coord,
             next: Coord::new(x_min - 1, y_min),
         }
     }
@@ -278,7 +324,7 @@ impl<'a, T> Iterator for NeighboursIter<'a, T> {
             if self.next == self.center {
                 continue;
             }
-            return Some(&self.grid[&self.next]);
+            return Some(&self.grid[self.next]);
         }
     }
 }
@@ -290,10 +336,10 @@ pub struct GridLine<'a, T> {
 }
 
 impl<'a, T> GridLine<'a, T> {
-    fn new(grid: &'a Grid<T>, start: &Coord, direction: (i32, i32)) -> Self {
+    fn new(grid: &'a Grid<T>, start: Coord, direction: (i32, i32)) -> Self {
         Self {
             grid,
-            coord: *start,
+            coord: start,
             direction,
         }
     }
@@ -312,6 +358,6 @@ impl<'a, T> Iterator for GridLine<'a, T> {
         {
             return None;
         }
-        Some(&self.grid[&self.coord])
+        Some(&self.grid[self.coord])
     }
 }

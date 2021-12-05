@@ -72,7 +72,7 @@ struct Board {
 impl Board {
     fn mark_number(&mut self, num: u8) -> bool {
         if let Some((c, _)) = self.grid.iter_tiles().find(|(_c, t)| t.n == num) {
-            self.grid[&c].marked = true;
+            self.grid[c].marked = true;
             self.check_win(&c)
         }
         self.won
@@ -81,8 +81,8 @@ impl Board {
     fn check_win(&mut self, coord: &Coord) {
         let hc = Coord { x: -1, y: coord.y };
         let vc = Coord { x: coord.x, y: -1 };
-        self.won = self.grid.line(&hc, (1, 0)).all(|t| t.marked)
-            || self.grid.line(&vc, (0, 1)).all(|t| t.marked);
+        self.won = self.grid.line(hc, (1, 0)).all(|t| t.marked)
+            || self.grid.line(vc, (0, 1)).all(|t| t.marked);
     }
 
     fn final_score(&self, n: usize) -> usize {
