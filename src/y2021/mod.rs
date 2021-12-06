@@ -1,1 +1,1 @@
-crate::advent!(day1, day2, day3, day4, day5);
+crate::advent!(day1, day2, day3, day4, day5, day6);
