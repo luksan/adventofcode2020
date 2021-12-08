@@ -5,21 +5,21 @@ use std::str::FromStr;
 
 const INPUT_FILE: &str = "data/2020/day24.txt";
 
-fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Vec<Coord> {
+fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Vec<HexCoord> {
     line_source.into_iter().map(parse).collect()
 }
 
-fn parse<S: AsRef<str>>(s: S) -> Coord {
-    s.as_ref().parse::<Coord>().unwrap()
+fn parse<S: AsRef<str>>(s: S) -> HexCoord {
+    s.as_ref().parse::<HexCoord>().unwrap()
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Hash, Debug)]
-struct Coord {
-    x: isize,
-    y: isize,
+struct HexCoord {
+    x: i16,
+    y: i16,
 }
 
-impl FromStr for Coord {
+impl FromStr for HexCoord {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -49,26 +49,26 @@ impl FromStr for Coord {
                 _ => unreachable!("Bad 2nd char."),
             }
         }
-        Ok(Coord { x, y })
+        Ok(HexCoord { x, y })
     }
 }
 
-impl Coord {
+impl HexCoord {
     fn adjacent(&self) -> AdjIter {
         AdjIter::new(self)
     }
 }
 
 struct AdjIter {
-    coords: [Coord; 6],
+    coords: [HexCoord; 6],
     next: usize,
 }
 
 impl AdjIter {
-    fn new(center: &Coord) -> AdjIter {
+    fn new(center: &HexCoord) -> AdjIter {
         let coords = [(2, 0), (-2, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
             .iter()
-            .map(|(dx, dy)| Coord {
+            .map(|(dx, dy)| HexCoord {
                 x: center.x + dx,
                 y: center.y + dy,
             })
@@ -81,7 +81,7 @@ impl AdjIter {
 }
 
 impl Iterator for AdjIter {
-    type Item = Coord;
+    type Item = HexCoord;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.next >= self.coords.len() {
@@ -95,6 +95,7 @@ impl Iterator for AdjIter {
 }
 
 #[derive(Clone, Copy)]
+#[repr(u8)]
 enum Color {
     Black,
     White,
@@ -109,8 +110,8 @@ impl Color {
     }
 }
 
-fn part1(coords: &[Coord]) -> usize {
-    let mut tiling: HashMap<&Coord, Color> = HashMap::new();
+fn part1(coords: &[HexCoord]) -> usize {
+    let mut tiling: HashMap<&HexCoord, Color> = HashMap::new();
     for c in coords {
         tiling.entry(c).or_insert(Color::White).flip();
     }
@@ -121,61 +122,51 @@ fn part1(coords: &[Coord]) -> usize {
         .count()
 }
 
-fn part2(coords: &[Coord]) -> usize {
-    let mut tiling: HashMap<Coord, Color> = HashMap::new();
+fn part2(coords: &[HexCoord]) -> usize {
+    let mut black = HashSet::new();
     for c in coords {
-        tiling.entry(*c).or_insert(Color::White).flip();
+        if !black.insert(*c) {
+            black.remove(c);
+        }
     }
+    let mut white = HashMap::with_capacity(black.len());
 
     for _day in 0..100 {
-        let mut new_tiling = tiling.clone();
-
-        let mut white: HashSet<Coord> = HashSet::new();
-
-        for (pos, color) in &tiling {
-            let mut black = 0;
-            for adj in pos.adjacent() {
-                match tiling.get(&adj) {
-                    Some(Color::Black) => black += 1,
-                    _ => {
-                        white.insert(adj);
-                    }
+        let mut new_black = black.clone();
+        for b in &black {
+            let mut blk_cnt = 0;
+            for n in b.adjacent() {
+                if black.contains(&n) {
+                    blk_cnt += 1;
+                } else {
+                    white.entry(n).and_modify(|c| *c += 1).or_insert(1);
                 }
             }
-            match color {
-                Color::Black => {
-                    if black == 0 || black > 2 {
-                        new_tiling.get_mut(pos).unwrap().flip()
-                    }
-                }
-                Color::White => {
-                    white.insert(*pos);
-                }
+            if blk_cnt == 0 || blk_cnt > 2 {
+                new_black.remove(b);
             }
         }
-
-        for c in white {
-            let black = c
-                .adjacent()
-                .filter(|c| matches!(tiling.get(c), Some(Color::Black)))
-                .count();
-            if black == 2 {
-                new_tiling.entry(c).or_insert(Color::White).flip();
+        for (w, blk_cnt) in white.drain() {
+            if blk_cnt == 2 {
+                new_black.insert(w);
             }
         }
-        tiling = new_tiling;
+        black = new_black;
     }
 
-    tiling
-        .values()
-        .filter(|t| matches!(t, Color::Black))
-        .count()
+    black.len()
 }
 
 #[test]
 fn test_small() {
-    assert_eq!("nwwswee".parse::<Coord>().unwrap(), Coord { x: 0, y: 0 });
-    assert_eq!("esew".parse::<Coord>().unwrap(), Coord { x: 1, y: -1 });
+    assert_eq!(
+        "nwwswee".parse::<HexCoord>().unwrap(),
+        HexCoord { x: 0, y: 0 }
+    );
+    assert_eq!(
+        "esew".parse::<HexCoord>().unwrap(),
+        HexCoord { x: 1, y: -1 }
+    );
 }
 
 #[test]
