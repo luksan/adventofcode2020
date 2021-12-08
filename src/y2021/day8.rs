@@ -1,6 +1,6 @@
 use arrayvec::ArrayVec;
 use itertools::Itertools;
-use std::ops::{Deref, Sub};
+use std::ops::Sub;
 use std::str::FromStr;
 
 type Displays = Vec<Display>;
@@ -25,47 +25,18 @@ fn parse<S: AsRef<str>>(s: S) -> Display {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]
-#[repr(u8)]
-enum Segment {
-    A,
-    B,
-    C,
-    D,
-    E,
-    F,
-    G,
-}
-
-impl From<char> for Segment {
-    fn from(c: char) -> Self {
-        use Segment::*;
-        match c {
-            'a' => A,
-            'b' => B,
-            'c' => C,
-            'd' => D,
-            'e' => E,
-            'f' => F,
-            'g' => G,
-            _ => panic!("Failed to parse segment."),
-        }
-    }
-}
-
 struct Display {
     digits: [Digit; 10],
     reading: [Digit; 4],
 }
 
-#[derive(Clone, Debug, PartialEq)]
-struct Digit(ArrayVec<Segment, 7>);
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[repr(transparent)]
+struct Digit(u8);
 
-impl Deref for Digit {
-    type Target = ArrayVec<Segment, 7>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl Digit {
+    pub fn len(&self) -> u32 {
+        self.0.count_ones()
     }
 }
 
@@ -73,8 +44,10 @@ impl FromStr for Digit {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut segs: ArrayVec<Segment, 7> = s.chars().map(|c| c.into()).collect();
-        segs.sort();
+        let mut segs: u8 = 0;
+        for c in s.bytes() {
+            segs |= 1 << (c - b'a');
+        }
         Ok(Self(segs))
     }
 }
@@ -83,15 +56,10 @@ impl Sub for &Digit {
     type Output = Digit;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        let x = self
-            .0
-            .iter()
-            .filter(|seg| !rhs.0.contains(seg))
-            .cloned()
-            .collect();
-        Digit(x)
+        Digit(!rhs.0 & self.0)
     }
 }
+
 fn part1(displays: &Displays) -> usize {
     // count occurrences of 1,4,7,8
     displays
