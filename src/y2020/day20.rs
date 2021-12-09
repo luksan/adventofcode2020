@@ -1,11 +1,13 @@
 #![allow(unused_imports, unused_mut, unused_variables)]
+
 use crate::GroupBlankLine;
+
 use anyhow::private::kind::TraitKind;
 use counter::Counter;
 use itertools::Itertools;
 use num_integer::Roots;
-use std::collections::{HashMap, HashSet};
-use std::fmt::{Display, Formatter};
+
+use std::fmt::{Debug, Display, Formatter};
 use std::iter::FromIterator;
 use std::marker::PhantomData;
 use std::ops::Index;
@@ -48,9 +50,9 @@ impl FromStr for Line {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let x = s.chars().fold(0, |mut line, c| {
+        let x = s.bytes().rev().fold(0, |mut line, c| {
             line <<= 1;
-            if c == '#' {
+            if c == b'#' {
                 line |= 1;
             }
             line
@@ -63,11 +65,26 @@ impl Line {
     fn reverse(&self) -> Line {
         Self(self.0.reverse_bits() >> (16 - 10))
     }
+
+    fn inner(&self) -> u8 {
+        ((self.0 >> 1) & 0xFF) as u8
+    }
 }
 
+#[derive(Clone, PartialEq, Eq, Hash)]
 struct Tile {
     id: u16,
     lines: [Line; 10],
+}
+
+impl Debug for Tile {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Tile #{}: ", self.id)?;
+        for s in Side::all_sides() {
+            write!(f, "{:?} ", self.edge(s))?;
+        }
+        Ok(())
+    }
 }
 
 impl Tile {
@@ -76,7 +93,7 @@ impl Tile {
         for row in &self.lines {
             line = line << 1 | (row.0 >> n & 1);
         }
-        Line(line)
+        Line(line).reverse()
     }
 
     fn row(&self, n: usize) -> Line {
@@ -84,25 +101,25 @@ impl Tile {
     }
 
     fn edge(&self, side: Side) -> Edge {
-        let id = self.id;
+        let tile = self;
         match side {
             Side::N => Edge {
-                id,
+                tile,
                 side: Side::N,
                 line: self.row(0),
             },
             Side::E => Edge {
-                id,
+                tile,
                 side: Side::E,
                 line: self.col(9),
             },
             Side::S => Edge {
-                id,
+                tile,
                 side: Side::S,
                 line: self.row(9),
             },
             Side::W => Edge {
-                id,
+                tile,
                 side: Side::W,
                 line: self.col(0),
             },
@@ -143,6 +160,10 @@ enum Side {
 }
 
 impl Side {
+    fn all_sides() -> [Side; 4] {
+        [Side::N, Side::E, Side::S, Side::W]
+    }
+
     fn left_of(&self) -> Self {
         use Side::*;
         match self {
@@ -168,16 +189,28 @@ impl Side {
     }
 }
 
-#[derive(Debug)]
-struct Edge {
-    id: TileId,
+#[derive(Clone)]
+struct Edge<'a> {
+    tile: &'a Tile,
     line: Line,
     side: Side,
 }
 
-impl Edge {
+impl Debug for Edge<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}:{}", self.side, self.line)
+    }
+}
+impl PartialEq for Edge<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.line == other.line
+    }
+}
+
+impl Edge<'_> {
     fn match_any_dir(&self, other: &Self) -> bool {
-        self.id != other.id && (self.line == other.line || self.line.reverse() == other.line)
+        self.tile.id != other.tile.id
+            && (self.line == other.line || self.line.reverse() == other.line)
     }
 }
 
@@ -186,93 +219,304 @@ fn collect_edges(tiles: &Puzzle) -> Vec<Edge> {
     for t in tiles {
         edges.extend(t.edges())
     }
-    edges.sort_unstable_by(|a, b| a.line.cmp(&b.line).then(a.id.cmp(&b.id)));
+    edges.sort_by(|a, b| a.line.cmp(&b.line).then(a.tile.id.cmp(&b.tile.id)));
     edges
 }
 
-fn get_corners(outer: &Vec<&Edge>) -> Vec<TileId> {
+fn get_corners<'a, 'b>(outer: &'b [Edge<'a>]) -> Vec<&'a Tile> {
     let mut cnt = Counter::<_, usize>::new();
-    cnt.extend(outer.iter().map(|e| e.id));
-    cnt.iter()
+    cnt.extend(outer.iter().map(|e| e.tile));
+    let mut c = cnt
+        .iter()
         .filter(|(_a, &b)| b == 2)
         .map(|(&a, _)| a)
-        .collect()
+        .collect_vec();
+    c.sort_by_key(|t| t.id);
+    c
 }
 
-fn find_outer(edges: &Vec<Edge>) -> Vec<&Edge> {
+fn find_outer<'a, 'b>(edges: &'a [Edge<'b>]) -> Vec<Edge<'b>> {
     let mut ret = Vec::new();
     for n in 0..edges.len() {
         if !edges.iter().any(|e| e.match_any_dir(&edges[n])) {
-            ret.push(&edges[n])
+            ret.push(edges[n].clone())
         }
     }
     ret
 }
 
 fn part1(tiles: &Puzzle) -> usize {
-    get_corners(&find_outer(&collect_edges(tiles)))
+    let outer = find_outer(&collect_edges(tiles));
+    get_corners(&outer)
         .iter()
-        .map(|&a| a as usize)
+        .map(|&tile| tile.id as usize)
         .product()
 }
 
-#[derive(Debug, Clone)]
-struct TileTransform {
-    id: TileId,
-    up: Side,
-    flip: bool,
+#[derive(Copy, Clone)]
+struct TileTransform<'a> {
+    tile: &'a Tile,
+    up: Side,   // indicates rotation by which edge is up
+    flip: bool, // Flip  along vertical axis
+}
+
+impl Debug for TileTransform<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Tile #{}: up: {:?}, flipped: {}",
+            self.tile.id, self.up, self.flip
+        )
+    }
+}
+
+impl<'a> TileTransform<'a> {
+    fn edge(&self, mut transformed_side: Side) -> Edge {
+        if self.flip && matches!(transformed_side, Side::E | Side::W) {
+            transformed_side = transformed_side.opposite();
+        }
+        let rot_flip = match self.up {
+            Side::N => false,
+            Side::E => {
+                matches!(transformed_side, Side::E | Side::W)
+            }
+            Side::S => true,
+            Side::W => {
+                matches!(transformed_side, Side::N | Side::S)
+            }
+        };
+
+        let up = self.up;
+        let actual_side = match transformed_side {
+            Side::N => up,
+            Side::E => up.right_of(),
+            Side::S => up.opposite(),
+            Side::W => up.left_of(),
+        };
+        let mut edge = self.tile.edge(actual_side);
+        if rot_flip {
+            edge.line = edge.line.reverse();
+        }
+        if self.flip && matches!(transformed_side, Side::N | Side::S) {
+            edge.line = edge.line.reverse();
+        }
+        edge
+    }
+
+    fn row(&self, row: usize) -> Line {
+        match self.up {
+            Side::N => {
+                let r = self.tile.row(row);
+                if self.flip {
+                    r.reverse()
+                } else {
+                    r
+                }
+            }
+            Side::E => {
+                let r = self.tile.col(9 - row);
+                if self.flip {
+                    r.reverse()
+                } else {
+                    r
+                }
+            }
+            Side::S => {
+                let r = self.tile.row(9 - row);
+                if !self.flip {
+                    r.reverse()
+                } else {
+                    r
+                }
+            }
+            Side::W => {
+                let r = self.tile.col(row);
+                if self.flip {
+                    r
+                } else {
+                    r.reverse()
+                }
+            }
+        }
+    }
 }
 
 fn get_matching_edges<'a>(
     edge: &Edge,
     iter: &mut dyn std::iter::Iterator<Item = &'a Edge>,
-) -> Vec<&'a Edge> {
+) -> Vec<&'a Edge<'a>> {
     iter.filter(|e| e.match_any_dir(edge)).collect()
 }
 
-type TileMap = Vec<Vec<Option<TileTransform>>>;
+type TileMap<'a> = Vec<Vec<Option<TileTransform<'a>>>>;
 
 struct Tiling<'a> {
-    map: TileMap,
+    map: TileMap<'a>,
     _p: PhantomData<&'a Tile>,
 }
 
-fn part2(tiles: &Puzzle) -> usize {
-    let side_len = usize::sqrt(&tiles.len());
+fn find_and_align_edge<'a, 'b>(
+    needle: &TileTransform<'a>,
+    needle_side: Side,
+    mut edges: impl Iterator<Item = &'b Edge<'a>>,
+) -> TileTransform<'a>
+where
+    'a: 'b,
+{
+    // get needle edge, considering transform
+    let old_edge = needle.edge(needle_side);
+    let new_edges = edges.filter(|e| e.match_any_dir(&old_edge)).collect_vec();
+    if new_edges.is_empty() {
+        println!("No match for {:?} at side {:?}", needle, needle_side);
+    }
+    assert_eq!(new_edges.len(), 1, "Didn't find exactly one matching edge.");
+    let new_edge = new_edges[0];
+    //let new_edge = edges.find(|e| e.match_any_dir(&old_edge)).unwrap();
+    let new_up = match needle_side {
+        Side::N => new_edge.side.opposite(),
+        Side::E => new_edge.side.right_of(), // Rotate so that the west side is aligned to the needle edge
+        Side::S => new_edge.side,
+        Side::W => new_edge.side.left_of(),
+    };
+
+    let mut new_trans = TileTransform {
+        tile: new_edge.tile,
+        up: new_up,
+        flip: false,
+    };
+    if new_trans.edge(needle_side.opposite()).line != old_edge.line {
+        new_trans.flip = true;
+        if matches!(needle_side, Side::E | Side::W) {
+            new_trans.up = new_trans.up.opposite();
+        }
+    } /*
+      println!("{:?}", needle);
+      for d in [Side::N, Side::E, Side::S, Side::W] {
+          print!("{:?} ", needle.edge(d));
+      }
+      println!();
+      println!("{:?}", new_trans);
+      for d in [Side::N, Side::E, Side::S, Side::W] {
+          print!("{:?} ", new_trans.edge(d));
+      }
+      println!();
+      println!(
+          "{:?} {:?} ({:?}) {:?}",
+          needle_side,
+          old_edge.line,
+          old_edge.line.reverse(),
+          new_trans.edge(needle_side.opposite()).line
+      );*/
+    assert_eq!(new_trans.edge(needle_side.opposite()).line, old_edge.line);
+
+    new_trans
+}
+
+fn solve_puzzle(tiles: &Puzzle) -> TileMap {
+    let side_len = tiles.len().sqrt();
 
     let mut tiling: TileMap = vec![vec![Default::default(); side_len]; side_len];
 
-    let tile_map: HashMap<TileId, &Tile> = tiles.iter().map(|t| (t.id, t)).collect();
-
-    let edges = collect_edges(tiles);
+    let mut edges = collect_edges(tiles);
     let outer_edges = find_outer(&edges);
+    assert_eq!(outer_edges.len(), side_len * 4);
 
-    let mut remaining: HashSet<TileId> = tiles.iter().map(|t| t.id).collect();
-    let mut placed: HashSet<TileId> = HashSet::new();
-
-    let mut outer_tiles: HashSet<TileId> = HashSet::from_iter(outer_edges.iter().map(|e| e.id));
-
-    let mut edges_outer_tiles: HashMap<TileId, Vec<Edge>> = outer_tiles
-        .iter()
-        .flat_map(|&t| tile_map.get(&t).unwrap().edges())
-        .fold(HashMap::new(), |mut map, edge| {
-            map.entry(edge.id).or_insert_with(Vec::new).push(edge);
-            map
-        });
-
-    let top_left = tile_map[&get_corners(&outer_edges)[0]];
-    outer_tiles.remove(&top_left.id);
-    let fo = edges_outer_tiles.remove(&top_left.id).unwrap();
-    let trans = TileTransform {
-        id: top_left.id,
-        up: fo[0].side,
-        flip: fo[1].side != fo[0].side.left_of(),
+    // Find and align first corner
+    let first_corner = get_corners(&outer_edges)[1];
+    // assert_eq!(first_corner.id, 1951);
+    // rotate so up / left is outer
+    let mut trans = TileTransform {
+        tile: first_corner,
+        up: Side::S,
+        flip: true,
     };
-    let mut next_edge = top_left.bottom_edge(&trans);
-    tiling[0][0] = Some(trans);
-    for n in 1..side_len {
-        for m in get_matching_edges(&next_edge, &mut edges_outer_tiles.values().flatten()) {}
+
+    assert_eq!(trans.edge(Side::N).side, Side::S);
+    assert_eq!(trans.edge(Side::W).side, Side::W);
+
+    assert!(outer_edges
+        .iter()
+        .any(|e| e.line == trans.edge(Side::N).line));
+    assert!(outer_edges
+        .iter()
+        .any(|e| e.line == trans.edge(Side::W).line.reverse()));
+
+    while !outer_edges
+        .iter()
+        .any(|e| e.line == trans.edge(Side::N).line)
+        || !outer_edges
+            .iter()
+            .any(|e| e.line == trans.edge(Side::W).line.reverse())
+    {
+        trans.up = trans.up.right_of()
     }
+
+    edges.retain(|e| e.tile.id != trans.tile.id);
+    tiling[0][0] = Some(trans);
+
+    for row in 0..side_len {
+        if row > 0 {
+            let new =
+                find_and_align_edge(tiling[row - 1][0].as_ref().unwrap(), Side::S, edges.iter());
+            edges.retain(|e| e.tile.id != new.tile.id);
+            tiling[row][0] = Some(new);
+        }
+        for col in 1..side_len {
+            // println!("row {} col {}", row, col);
+            let new = find_and_align_edge(
+                tiling[row][col - 1].as_ref().unwrap(),
+                Side::E,
+                edges.iter(),
+            );
+            edges.retain(|e| e.tile.id != new.tile.id);
+            tiling[row][col] = Some(new);
+        }
+    }
+
+    tiling
+}
+
+fn print_pic(pic: &[u128]) {
+    for row in pic {
+        for n in (0..(8 * 3)).rev() {
+            if row >> n & 1 == 1 {
+                print!("#");
+            } else {
+                print!(".");
+            }
+        }
+        println!();
+    }
+}
+
+fn print_tiling(tiles: &TileMap) {
+    for row in tiles {
+        for line in 0..10 {
+            for tile in row {
+                print!("{} ", tile.unwrap().row(line));
+            }
+            println!()
+        }
+        println!()
+    }
+}
+fn part2(puzzle: &Puzzle) -> usize {
+    let tiles = solve_puzzle(puzzle);
+    // trim edges and merge
+
+    print_tiling(&tiles);
+
+    let mut picture = vec![0u128; tiles.len() * 8];
+    for row in 0..tiles.len() {
+        for tile in &tiles[row] {
+            for line in 0..8 {
+                picture[row * 8 + line] =
+                    picture[row * 8 + line] << 8 | tile.unwrap().row(line + 1).inner() as u128;
+            }
+        }
+    }
+
+    print_pic(&picture);
     0
 }
 
@@ -281,7 +525,7 @@ fn real_data() {
     let d = load_input(crate::load_strings(INPUT_FILE));
     assert_eq!(d.len(), 144);
     assert_eq!(part1(&d), 29293767579581);
-    // assert_eq!(part2(&d), 1);
+    assert_eq!(part2(&d), 1);
 }
 
 #[test]
