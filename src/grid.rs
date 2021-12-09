@@ -1,4 +1,6 @@
+use arrayvec::ArrayVec;
 use itertools::Itertools;
+
 use std::cmp::{max, min};
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::Enumerate;
@@ -137,8 +139,14 @@ impl<T> Grid<T> {
         AllTiles::new(self)
     }
 
+    /// Returns an iterator giving the eight surrounding tiles, or less if at edge.
     pub fn neighbours(&self, coord: Coord) -> NeighboursIter<T> {
         NeighboursIter::new(coord, self)
+    }
+
+    /// Return iterator for the four neighbouring tiles on the main axes.
+    pub fn updownleftright(&self, coord: Coord) -> UpDownLeftRight<T> {
+        UpDownLeftRight::new(self, coord)
     }
 
     /// Returns an iterator for the tiles along the given line. `start` is not included
@@ -326,6 +334,45 @@ impl<'a, T> Iterator for NeighboursIter<'a, T> {
             }
             return Some(&self.grid[self.next]);
         }
+    }
+}
+
+pub struct UpDownLeftRight<'a, T> {
+    grid: &'a Grid<T>,
+    coords: ArrayVec<Coord, 4>,
+}
+
+impl<'a, T> UpDownLeftRight<'a, T> {
+    fn new(grid: &'a Grid<T>, center: Coord) -> Self {
+        let mut coords = ArrayVec::new();
+        for x in [-1, 1] {
+            let c = Coord {
+                x: center.x + x,
+                y: center.y,
+            };
+            if grid.valid_coord(c) {
+                coords.push(c);
+            }
+        }
+        for y in [-1, 1] {
+            let c = Coord {
+                x: center.x,
+                y: center.y + y,
+            };
+            if grid.valid_coord(c) {
+                coords.push(c);
+            }
+        }
+        Self { grid, coords }
+    }
+}
+
+impl<'a, T> Iterator for UpDownLeftRight<'a, T> {
+    type Item = (Coord, &'a T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let c = self.coords.pop()?;
+        Some((c, &self.grid[c]))
     }
 }
 

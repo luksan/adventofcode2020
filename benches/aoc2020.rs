@@ -2,7 +2,7 @@ use adventofcode2020 as aoc;
 use criterion::{criterion_group, criterion_main, Criterion};
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    use aoc::day23::{bench, bench_input};
+    use aoc::y2020::day23::{bench, bench_input};
     let d = bench_input();
     c.bench_function("day 23 part 2", |b| b.iter(|| bench(&d)));
 }
