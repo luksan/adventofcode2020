@@ -490,19 +490,6 @@ fn solve_puzzle(tiles: &Puzzle) -> TileMap {
     tiling
 }
 
-fn print_pic(pic: &[u128]) {
-    for row in pic {
-        for n in (0..(8 * 3)).rev() {
-            if row >> n & 1 == 1 {
-                print!("#");
-            } else {
-                print!(".");
-            }
-        }
-        println!();
-    }
-}
-
 fn print_tiling(tiles: &TileMap) {
     for row in tiles {
         for line in 0..10 {
@@ -514,24 +501,121 @@ fn print_tiling(tiles: &TileMap) {
         println!()
     }
 }
+
+struct Picture(Vec<u128>);
+
+impl Picture {
+    fn new(tiles: &TileMap) -> Self {
+        let mut picture = vec![0u128; tiles.len() * 8];
+        for row in 0..tiles.len() {
+            for tile in &tiles[row] {
+                for line in 0..8 {
+                    picture[row * 8 + line] =
+                        picture[row * 8 + line] << 8 | tile.unwrap().row(line + 1).inner() as u128;
+                }
+            }
+        }
+        Self(picture)
+    }
+
+    fn print(&self) {
+        for row in &self.0 {
+            for n in (0..self.0.len()).rev() {
+                if row >> n & 1 == 1 {
+                    print!("#");
+                } else {
+                    print!(".");
+                }
+            }
+            println!();
+        }
+    }
+    fn get(&self, row: usize, col: usize) -> bool {
+        let len = self.0.len();
+        assert!(len > col);
+        self.0[row] >> (len - 1 - col) & 1 == 1
+    }
+    fn get_col(&self, col: usize) -> u128 {
+        let mut ret: u128 = 0;
+        let sh = self.0.len() - 1 - col;
+        for &row in &self.0 {
+            ret = ret << 1 | (row >> sh) & 1;
+        }
+        ret
+    }
+    fn transpose(&mut self) {
+        let rot = (0..self.0.len()).map(|col| self.get_col(col)).collect();
+        self.0 = rot;
+    }
+
+    fn flip_rows(&mut self) {
+        let len = self.0.len();
+        for row in self.0.iter_mut() {
+            *row = row.reverse_bits() >> (128 - len);
+        }
+    }
+
+    fn match_pattern(&self, mut pat: [u128; 3], plen: usize, row: usize, shift: usize) -> bool {
+        for r in pat.iter_mut() {
+            *r <<= shift;
+        }
+        for r in 0..3 {
+            if self.0[row + r] & pat[r] != pat[r] {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+const MONSTER_LEN: usize = 20;
+fn get_monster_pattern() -> [u128; 3] {
+    let p = [
+        "                  # ",
+        "#    ##    ##    ###",
+        " #  #  #  #  #  #   ",
+    ];
+    let mut ret = [0; 3];
+    for n in 0..3 {
+        for c in p[n].bytes() {
+            ret[n] <<= 1;
+            if c == b'#' {
+                ret[n] |= 1;
+            }
+        }
+    }
+    ret
+}
+
 fn part2(puzzle: &Puzzle) -> usize {
     let tiles = solve_puzzle(puzzle);
     // trim edges and merge
 
-    print_tiling(&tiles);
+    // print_tiling(&tiles);
+    let mut picture = Picture::new(&tiles);
+    let len = picture.0.len();
 
-    let mut picture = vec![0u128; tiles.len() * 8];
-    for row in 0..tiles.len() {
-        for tile in &tiles[row] {
-            for line in 0..8 {
-                picture[row * 8 + line] =
-                    picture[row * 8 + line] << 8 | tile.unwrap().row(line + 1).inner() as u128;
+    picture.transpose();
+    // picture.print();
+
+    let m = get_monster_pattern();
+
+    let mut monster_count = 0;
+    for row in 0..len - 2 {
+        for shift in 0..(len - MONSTER_LEN + 1) {
+            if picture.match_pattern(m, MONSTER_LEN, row, shift) {
+                // println!("Monster at {} {}", row, shift);
+                monster_count += 1;
             }
         }
     }
 
-    print_pic(&picture);
-    0
+    picture
+        .0
+        .iter()
+        .map(|r| r.count_ones() as usize)
+        .sum::<usize>()
+        - monster_count * 15
 }
 
 #[test]
@@ -539,7 +623,7 @@ fn real_data() {
     let d = load_input(crate::load_strings(INPUT_FILE));
     assert_eq!(d.len(), 144);
     assert_eq!(part1(&d), 29293767579581);
-    assert_eq!(part2(&d), 1);
+    assert_eq!(part2(&d), 1989);
 }
 
 #[test]
