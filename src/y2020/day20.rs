@@ -35,7 +35,7 @@ struct Line(u16);
 
 impl Display for Line {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        for n in 0..10 {
+        for n in (0..10).rev() {
             let c = match self.0 >> n & 1 == 1 {
                 true => '#',
                 false => '.',
@@ -50,7 +50,7 @@ impl FromStr for Line {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let x = s.bytes().rev().fold(0, |mut line, c| {
+        let x = s.bytes().fold(0, |mut line, c| {
             line <<= 1;
             if c == b'#' {
                 line |= 1;
@@ -69,6 +69,20 @@ impl Line {
     fn inner(&self) -> u8 {
         ((self.0 >> 1) & 0xFF) as u8
     }
+
+    fn get(&self, pos: usize) -> bool {
+        self.0 >> (9 - pos) & 1 == 1
+    }
+}
+
+#[test]
+fn test_line() {
+    let s = ".##...#.##";
+    let l: Line = s.parse().unwrap();
+    assert_eq!(format!("{}", l), s);
+    assert_eq!(l.0 & 1, 1);
+    assert!(!l.get(0));
+    assert!(l.get(9));
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -91,9 +105,9 @@ impl Tile {
     fn col(&self, n: usize) -> Line {
         let mut line = 0;
         for row in &self.lines {
-            line = line << 1 | (row.0 >> n & 1);
+            line = line << 1 | row.get(n) as u16;
         }
-        Line(line).reverse()
+        Line(line)
     }
 
     fn row(&self, n: usize) -> Line {
