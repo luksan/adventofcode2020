@@ -1,5 +1,5 @@
 use arrayvec::ArrayVec;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ops::Index;
 use std::str::FromStr;
 
@@ -163,22 +163,29 @@ impl Index<HexCoord> for Floor {
 }
 
 fn part2(coords: &[HexCoord]) -> usize {
-    let mut black = HashSet::new();
     let mut floor = Floor::new();
     for c in coords {
-        if !black.insert(*c) {
-            black.remove(c);
-        }
         floor.flip(*c);
     }
+    let mut black = Vec::with_capacity(4100);
+
+    black.extend(
+        floor
+            .0
+            .iter()
+            .enumerate()
+            .filter(|(_, &b)| b > 0)
+            .map(|(idx, _)| HexCoord::from_index(idx)),
+    );
 
     let mut white_count = Floor::new();
-    let mut white_list = vec![];
-    let mut flip_to_white = vec![];
+    let mut white_list = Vec::with_capacity(1000);
+    let mut flip_to_white = Vec::with_capacity(100);
 
     for _day in 0..100 {
-        let mut new_black = black.clone();
-        for b in &black {
+        let mut b_idx = 0;
+        while b_idx < black.len() {
+            let b = black[b_idx];
             let mut blk_cnt = 0;
             for n in b.adjacent() {
                 if floor.contains(n) {
@@ -189,8 +196,10 @@ fn part2(coords: &[HexCoord]) -> usize {
                 }
             }
             if blk_cnt == 0 || blk_cnt > 2 {
-                new_black.remove(b);
-                flip_to_white.push(*b);
+                flip_to_white.push(b);
+                black.swap_remove(b_idx);
+            } else {
+                b_idx += 1;
             }
         }
         for b in flip_to_white.drain(..) {
@@ -201,11 +210,10 @@ fn part2(coords: &[HexCoord]) -> usize {
                 continue;
             }
             if white_count.flip(w) == 2 {
-                new_black.insert(w);
+                black.push(w);
                 floor.flip(w);
             }
         }
-        black = new_black;
     }
 
     black.len()
