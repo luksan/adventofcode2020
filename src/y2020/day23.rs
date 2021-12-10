@@ -71,17 +71,17 @@ impl LinkedCircle {
         let current = self.new_ptr(self.current);
         let removed = self.take_three(&current);
 
-        let mut maybe_dest = self.current - 1;
-        let dest = loop {
+        let mut maybe_dest = self.current;
+        for _ in 0..4 {
+            maybe_dest -= 1;
             if maybe_dest == 0 {
-                maybe_dest = Self::CUP_CNT as Cup;
+                maybe_dest = Self::CUP_CNT;
             }
             if !removed.contains(&maybe_dest) {
-                break maybe_dest;
+                break;
             }
-            maybe_dest -= 1;
-        };
-
+        }
+        let dest = maybe_dest;
         self.place_three(dest, removed);
         self.current = current.next().cup;
     }

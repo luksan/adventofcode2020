@@ -20,9 +20,16 @@ scan_fmt = "0.2.5"
 smol_str = "0.1.17"
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = { version = "0.3", features = ["html_reports"] }
 
 [profile.bench]
+debug = true
+
+[profile.test]
+debug = true
+opt-level = 3
+
+[profile.release]
 debug = true
 
 [[bench]]
