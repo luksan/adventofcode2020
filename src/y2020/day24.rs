@@ -134,13 +134,15 @@ impl Floor {
         ])
     }
 
-    fn flip(&mut self, coord: HexCoord) {
+    fn flip(&mut self, coord: HexCoord) -> u8 {
         let c = &mut self.0[coord.as_index()];
+        let r = *c;
         if *c > 0 {
             *c = 0;
         } else {
             *c = 1;
         }
+        r
     }
 
     fn contains(&self, coord: HexCoord) -> bool {
@@ -170,7 +172,8 @@ fn part2(coords: &[HexCoord]) -> usize {
         floor.flip(*c);
     }
 
-    let mut white = HashMap::with_capacity(black.len());
+    let mut white_count = Floor::new();
+    let mut white_list = vec![];
     let mut flip_to_white = vec![];
 
     for _day in 0..100 {
@@ -181,7 +184,8 @@ fn part2(coords: &[HexCoord]) -> usize {
                 if floor.contains(n) {
                     blk_cnt += 1;
                 } else {
-                    white.entry(n).and_modify(|c| *c += 1).or_insert(1);
+                    white_count.count_white(n);
+                    white_list.push(n);
                 }
             }
             if blk_cnt == 0 || blk_cnt > 2 {
@@ -192,8 +196,11 @@ fn part2(coords: &[HexCoord]) -> usize {
         for b in flip_to_white.drain(..) {
             floor.flip(b);
         }
-        for (w, blk_cnt) in white.drain() {
-            if blk_cnt == 2 {
+        for w in white_list.drain(..) {
+            if white_count[w] == 0 {
+                continue;
+            }
+            if white_count.flip(w) == 2 {
                 new_black.insert(w);
                 floor.flip(w);
             }
