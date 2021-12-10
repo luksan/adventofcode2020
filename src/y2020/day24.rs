@@ -1,6 +1,5 @@
-use itertools::Itertools;
+use arrayvec::ArrayVec;
 use std::collections::{HashMap, HashSet};
-use std::convert::TryInto;
 use std::str::FromStr;
 
 const INPUT_FILE: &str = "data/2020/day24.txt";
@@ -13,10 +12,11 @@ fn parse<S: AsRef<str>>(s: S) -> HexCoord {
     s.as_ref().parse::<HexCoord>().unwrap()
 }
 
+// https://www.redblobgames.com/grids/hexagons/
 #[derive(PartialEq, Eq, Clone, Copy, Hash, Debug)]
 struct HexCoord {
-    x: i16,
-    y: i16,
+    q: i16,
+    r: i16,
 }
 
 impl FromStr for HexCoord {
@@ -26,70 +26,70 @@ impl FromStr for HexCoord {
         if s.is_empty() {
             unreachable!("Nein!")
         }
-        let mut x = 0;
-        let mut y = 0;
+        let mut q = 0;
+        let mut r = 0;
         let mut chars = s.chars();
         while let Some(c1) = chars.next() {
             match c1 {
                 'e' => {
-                    x += 2;
-                    continue;
+                    q += 1;
                 }
                 'w' => {
-                    x -= 2;
-                    continue;
+                    q -= 1;
                 }
-                'n' => y += 1,
-                's' => y -= 1,
+                'n' => {
+                    r -= 1;
+                    if matches!(chars.next(), Some('e')) {
+                        q += 1;
+                    }
+                }
+                's' => {
+                    r += 1;
+                    if matches!(chars.next(), Some('w')) {
+                        q -= 1;
+                    }
+                }
                 _ => unreachable!("Bad input"),
             }
-            match chars.next().unwrap() {
-                'e' => x += 1,
-                'w' => x -= 1,
-                _ => unreachable!("Bad 2nd char."),
-            }
         }
-        Ok(HexCoord { x, y })
+        Ok(HexCoord { q, r })
     }
 }
 
 impl HexCoord {
-    fn adjacent(&self) -> AdjIter {
-        AdjIter::new(self)
-    }
-}
+    fn adjacent(&self) -> [HexCoord; 6] {
+        /*
+        assert!(self.q > -70);
+        assert!(self.r > -70);
+        assert!(self.q < 70);
+        assert!(self.r < 70);
+        */
 
-struct AdjIter {
-    coords: [HexCoord; 6],
-    next: usize,
-}
-
-impl AdjIter {
-    fn new(center: &HexCoord) -> AdjIter {
-        let coords = [(2, 0), (-2, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
-            .iter()
-            .map(|(dx, dy)| HexCoord {
-                x: center.x + dx,
-                y: center.y + dy,
-            })
-            .collect_vec();
-        AdjIter {
-            coords: coords.try_into().unwrap(),
-            next: 0,
+        let mut ret = ArrayVec::new();
+        let offsets = [(0, -1), (1, -1), (1, 0), (0, 1), (-1, 1), (-1, 0)];
+        for o in offsets {
+            ret.push(Self {
+                q: self.q + o.0,
+                r: self.r + o.1,
+            });
         }
+
+        unsafe { ret.into_inner_unchecked() }
     }
-}
 
-impl Iterator for AdjIter {
-    type Item = HexCoord;
+    const MAX_RADIUS: i16 = 70;
+    fn as_index(&self) -> usize {
+        let r_off = (self.r + Self::MAX_RADIUS) as usize;
+        let q_off = (self.q + Self::MAX_RADIUS) as usize;
+        q_off * Self::MAX_RADIUS as usize + r_off
+    }
 
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.next >= self.coords.len() {
-            None
-        } else {
-            let n = self.next;
-            self.next += 1;
-            Some(self.coords[n])
+    fn from_index(idx: usize) -> Self {
+        let r_off = idx % Self::MAX_RADIUS as usize;
+        let q_off = (idx - r_off) / Self::MAX_RADIUS as usize;
+        Self {
+            q: q_off as i16 - Self::MAX_RADIUS,
+            r: r_off as i16 - Self::MAX_RADIUS,
         }
     }
 }
@@ -161,12 +161,9 @@ fn part2(coords: &[HexCoord]) -> usize {
 fn test_small() {
     assert_eq!(
         "nwwswee".parse::<HexCoord>().unwrap(),
-        HexCoord { x: 0, y: 0 }
+        HexCoord { q: 0, r: 0 }
     );
-    assert_eq!(
-        "esew".parse::<HexCoord>().unwrap(),
-        HexCoord { x: 1, y: -1 }
-    );
+    assert_eq!("esew".parse::<HexCoord>().unwrap(), HexCoord { r: 1, q: 0 });
 }
 
 #[test]
