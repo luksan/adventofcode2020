@@ -1,5 +1,6 @@
 use arrayvec::ArrayVec;
 use std::collections::{HashMap, HashSet};
+use std::ops::Index;
 use std::str::FromStr;
 
 const INPUT_FILE: &str = "data/2020/day24.txt";
@@ -78,15 +79,16 @@ impl HexCoord {
     }
 
     const MAX_RADIUS: i16 = 70;
+    const STRIDE: usize = Self::MAX_RADIUS as usize * 2 + 1;
     fn as_index(&self) -> usize {
         let r_off = (self.r + Self::MAX_RADIUS) as usize;
         let q_off = (self.q + Self::MAX_RADIUS) as usize;
-        q_off * Self::MAX_RADIUS as usize + r_off
+        q_off * Self::STRIDE as usize + r_off
     }
 
     fn from_index(idx: usize) -> Self {
-        let r_off = idx % Self::MAX_RADIUS as usize;
-        let q_off = (idx - r_off) / Self::MAX_RADIUS as usize;
+        let r_off = idx % Self::STRIDE;
+        let q_off = (idx - r_off) / Self::STRIDE as usize;
         Self {
             q: q_off as i16 - Self::MAX_RADIUS,
             r: r_off as i16 - Self::MAX_RADIUS,
@@ -122,21 +124,61 @@ fn part1(coords: &[HexCoord]) -> usize {
         .count()
 }
 
+struct Floor(Vec<u8>);
+
+impl Floor {
+    fn new() -> Self {
+        Self(vec![
+            0;
+            HexCoord::MAX_RADIUS as usize * 2 * HexCoord::STRIDE + 1
+        ])
+    }
+
+    fn flip(&mut self, coord: HexCoord) {
+        let c = &mut self.0[coord.as_index()];
+        if *c > 0 {
+            *c = 0;
+        } else {
+            *c = 1;
+        }
+    }
+
+    fn contains(&self, coord: HexCoord) -> bool {
+        self.0[coord.as_index()] > 0
+    }
+
+    fn count_white(&mut self, coord: HexCoord) {
+        self.0[coord.as_index()] += 1;
+    }
+}
+
+impl Index<HexCoord> for Floor {
+    type Output = u8;
+
+    fn index(&self, index: HexCoord) -> &Self::Output {
+        &self.0[index.as_index()]
+    }
+}
+
 fn part2(coords: &[HexCoord]) -> usize {
     let mut black = HashSet::new();
+    let mut floor = Floor::new();
     for c in coords {
         if !black.insert(*c) {
             black.remove(c);
         }
+        floor.flip(*c);
     }
+
     let mut white = HashMap::with_capacity(black.len());
+    let mut flip_to_white = vec![];
 
     for _day in 0..100 {
         let mut new_black = black.clone();
         for b in &black {
             let mut blk_cnt = 0;
             for n in b.adjacent() {
-                if black.contains(&n) {
+                if floor.contains(n) {
                     blk_cnt += 1;
                 } else {
                     white.entry(n).and_modify(|c| *c += 1).or_insert(1);
@@ -144,11 +186,16 @@ fn part2(coords: &[HexCoord]) -> usize {
             }
             if blk_cnt == 0 || blk_cnt > 2 {
                 new_black.remove(b);
+                flip_to_white.push(*b);
             }
+        }
+        for b in flip_to_white.drain(..) {
+            floor.flip(b);
         }
         for (w, blk_cnt) in white.drain() {
             if blk_cnt == 2 {
                 new_black.insert(w);
+                floor.flip(w);
             }
         }
         black = new_black;
