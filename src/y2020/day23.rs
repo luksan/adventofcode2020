@@ -15,29 +15,31 @@ type Cup = u32;
 type Link = Cell<Cup>;
 
 struct CupPtr<'a> {
-    links: &'a Vec<Link>,
+    links: &'a LinkArray,
     cup: Cup,
 }
 
 impl<'a> CupPtr<'a> {
-    fn new(links: &Vec<Link>, node: Cup) -> CupPtr {
+    fn new(links: &LinkArray, node: Cup) -> CupPtr {
         CupPtr { links, cup: node }
     }
 
     fn next(&self) -> CupPtr<'a> {
         CupPtr {
-            links: &*self.links,
-            cup: self.links[self.cup as usize].get(),
+            links: self.links,
+            cup: unsafe { self.links.get_unchecked(self.cup as usize).get() },
         }
     }
 
     fn set_next(&self, next_cup: Cup) {
-        self.links[self.cup as usize].set(next_cup)
+        unsafe { self.links.get_unchecked(self.cup as usize).set(next_cup) }
     }
 }
 
+type LinkArray = [Cell<Cup>; LinkedCircle::CUP_CNT as usize + 1];
+
 struct LinkedCircle {
-    links: Vec<Cell<Cup>>,
+    links: Box<LinkArray>,
     current: Cup,
 }
 
@@ -45,7 +47,8 @@ impl LinkedCircle {
     const CUP_CNT: u32 = 1_000_000;
 
     fn from_circle(circle: &Circle) -> LinkedCircle {
-        let links = (0..=Self::CUP_CNT).map(|l| Cell::new(l + 1)).collect();
+        let links: Vec<_> = (0..=Self::CUP_CNT).map(|l| Cell::new(l + 1)).collect();
+        let links: Box<LinkArray> = links.into_boxed_slice().try_into().unwrap();
 
         let mut ptr = CupPtr::new(&links, (links.len() - 1) as Cup);
         for cup in &circle.cups {

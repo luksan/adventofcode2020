@@ -22,6 +22,9 @@ smol_str = "0.1.17"
 [dev-dependencies]
 criterion = "0.3"
 
+[profile.bench]
+debug = true
+
 [[bench]]
 name = "aoc2020"
 harness = false
