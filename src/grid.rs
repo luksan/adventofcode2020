@@ -166,6 +166,10 @@ impl<T> Grid<T> {
         NeighboursIter::new(coord, self)
     }
 
+    pub fn neighbour_coords(&self, coord: Coord) -> NeighbourCoords {
+        NeighbourCoords::new(coord, self.height, self.width)
+    }
+
     /// Return iterator for the four neighbouring tiles on the main axes.
     pub fn updownleftright(&self, coord: Coord) -> UpDownLeftRight<T> {
         UpDownLeftRight::new(self, coord)
@@ -355,6 +359,49 @@ impl<'a, T> Iterator for NeighboursIter<'a, T> {
                 continue;
             }
             return Some(&self.grid[self.next]);
+        }
+    }
+}
+
+pub struct NeighbourCoords {
+    center: Coord,
+    next: Coord,
+    x_max: i32,
+    x_min: i32,
+    y_max: i32,
+}
+
+impl NeighbourCoords {
+    fn new(coord: Coord, height: i32, width: i32) -> Self {
+        let x_min = max(0, coord.x - 1);
+        let y_min = max(0, coord.y - 1);
+        Self {
+            x_max: min(width - 1, coord.x + 1),
+            x_min,
+            y_max: min(height - 1, coord.y + 1),
+            center: coord,
+            next: Coord::new(x_min - 1, y_min),
+        }
+    }
+}
+
+impl Iterator for NeighbourCoords {
+    type Item = Coord;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            self.next.x += 1;
+            if self.next.x > self.x_max {
+                self.next.x = self.x_min;
+                self.next.y += 1;
+            }
+            if self.next.y > self.y_max {
+                return None;
+            }
+            if self.next == self.center {
+                continue;
+            }
+            return Some(self.next);
         }
     }
 }
