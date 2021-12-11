@@ -6,7 +6,7 @@ fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Intco
 
 fn part1(intcode: &Intcode) -> usize {
     let mut intcode = intcode.clone();
-    intcode.run(&[]);
+    intcode.run_until_end(&[]);
     intcode.peek(0) as usize
 }
 
@@ -16,7 +16,7 @@ fn part2(pre_run: &Intcode) -> isize {
             let mut intcode = pre_run.clone();
             intcode.poke(1, noun);
             intcode.poke(2, verb);
-            intcode.run(&[]);
+            intcode.run_until_end(&[]);
             if intcode.peek(0) == 19690720 {
                 return 100 * noun + verb;
             }

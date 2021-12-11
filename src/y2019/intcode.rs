@@ -75,6 +75,12 @@ pub struct Intcode {
     ip: usize,
 }
 
+pub enum PauseCause<'a> {
+    Halt,
+    Input(&'a mut MemCell),
+    Output(MemCell),
+}
+
 impl Intcode {
     pub fn load_program(prog: &str) -> Self {
         let mem = prog.split(',').map(|n| n.parse().unwrap()).collect();
@@ -93,9 +99,24 @@ impl Intcode {
         r
     }
 
-    pub fn run(&mut self, input: &[MemCell]) -> Vec<MemCell> {
+    pub fn run_until_end(&mut self, input: &[MemCell]) -> Vec<MemCell> {
         let mut output = vec![];
         let mut input = input.iter();
+        loop {
+            match self.run() {
+                PauseCause::Halt => break,
+                PauseCause::Input(mem_ref) => {
+                    *mem_ref = *input.next().unwrap();
+                }
+                PauseCause::Output(out) => {
+                    output.push(out);
+                }
+            }
+        }
+        output
+    }
+
+    pub fn run(&mut self) -> PauseCause {
         loop {
             let op: OpCode = self.mem[self.ip].try_into().unwrap();
             macro_rules! aritm3 {
@@ -109,11 +130,11 @@ impl Intcode {
                 OpCode::Mul(mode) => aritm3!(*, mode),
                 OpCode::Input(mode) => {
                     let [target] = self.op_addr_and_ip(mode);
-                    self.mem[target] = *input.next().unwrap();
+                    return PauseCause::Input(&mut self.mem[target]);
                 }
                 OpCode::Output(mode) => {
                     let [target] = self.op_addr_and_ip(mode);
-                    output.push(self.mem[target]);
+                    return PauseCause::Output(self.mem[target]);
                 }
                 OpCode::JNZ(mode) => {
                     let [c, t] = self.op_addr_and_ip(mode);
@@ -129,10 +150,9 @@ impl Intcode {
                 }
                 OpCode::Less(mode) => aritm3!(<, mode),
                 OpCode::Eq(mode) => aritm3!(==, mode),
-                OpCode::Halt(_mode) => break,
+                OpCode::Halt(_mode) => return PauseCause::Halt,
             }
         }
-        output
     }
 
     pub fn peek(&self, addr: usize) -> MemCell {
