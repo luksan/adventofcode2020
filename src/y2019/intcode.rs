@@ -1,52 +1,145 @@
-use num_enum::TryFromPrimitive;
+use std::convert::{TryFrom, TryInto};
 
-use std::convert::TryInto;
-
-#[derive(Copy, Clone, Debug, TryFromPrimitive)]
-#[repr(usize)]
+#[derive(Copy, Clone, Debug)]
 enum OpCode {
-    Add = 1,
-    Mul = 2,
-    Halt = 99,
+    Add(OpMode<3>),
+    Mul(OpMode<3>),
+    Input(OpMode<1>),
+    Output(OpMode<1>),
+    JNZ(OpMode<2>),
+    JZ(OpMode<2>),
+    Less(OpMode<3>),
+    Eq(OpMode<3>),
+    Halt(OpMode<0>),
 }
+
+impl TryFrom<MemCell> for OpCode {
+    type Error = ();
+
+    fn try_from(value: MemCell) -> Result<Self, Self::Error> {
+        let op = value % 100;
+        use OpCode::*;
+        Ok(match op {
+            1 => Add(value.into()),
+            2 => Mul(value.into()),
+            3 => Input(value.into()),
+            4 => Output(value.into()),
+            5 => JNZ(value.into()),
+            6 => JZ(value.into()),
+            7 => Less(value.into()),
+            8 => Eq(value.into()),
+            99 => Halt(value.into()),
+
+            _ => panic!("Unknown opcode"),
+        })
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+struct OpMode<const N: usize>([Mode; N]);
+
+impl<const N: usize> OpMode<N> {
+    fn new(val: MemCell) -> Self {
+        let mut m = [Mode::Pos; N];
+        let mut c = val / 100; // remove op code
+        for i in 0..N {
+            let mode = match c % 10 {
+                0 => Mode::Pos,
+                1 => Mode::Imm,
+                _ => panic!("Unhandled op mode."),
+            };
+            m[i] = mode;
+            c /= 10;
+        }
+        Self(m)
+    }
+}
+
+impl<const N: usize> From<MemCell> for OpMode<N> {
+    fn from(m: MemCell) -> Self {
+        Self::new(m)
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+enum Mode {
+    Imm,
+    Pos,
+}
+
+pub type MemCell = isize;
 
 #[derive(Clone, Debug)]
 pub struct Intcode {
-    mem: Vec<usize>,
+    mem: Vec<MemCell>,
+    ip: usize,
 }
 
 impl Intcode {
     pub fn load_program(prog: &str) -> Self {
         let mem = prog.split(',').map(|n| n.parse().unwrap()).collect();
-        Self { mem }
+        Self { mem, ip: 0 }
     }
 
-    pub fn run(&mut self) {
-        let mut ip = 0;
-        let m = &mut self.mem;
-        macro_rules! aritm3 {
-            ($op:tt) => {{
-                let res = m[m[ip + 1]] $op m[m[ip+2]];
-                let target_addr = m[ip+3];
-                m[target_addr] = res;
-                ip +=4;
+    fn op_addr_and_ip<const N: usize>(&mut self, modes: OpMode<N>) -> [usize; N] {
+        let mut r = [0; N];
+        for n in 0..N {
+            r[n] = match modes.0[n] {
+                Mode::Imm => self.ip + n + 1,
+                Mode::Pos => self.mem[self.ip + n + 1] as usize,
+            };
+        }
+        self.ip += N + 1;
+        r
+    }
+
+    pub fn run(&mut self, input: &[MemCell]) -> Vec<MemCell> {
+        let mut output = vec![];
+        let mut input = input.iter();
+        loop {
+            let op: OpCode = self.mem[self.ip].try_into().unwrap();
+            macro_rules! aritm3 {
+            ($op:tt, $mode:ident) => {{
+                let [a,b,c] = self.op_addr_and_ip($mode);
+                self.mem[c] = (self.mem[a] $op self.mem[b]) as MemCell;
             }}
         }
-        loop {
-            let op: OpCode = m[ip].try_into().unwrap();
             match op {
-                OpCode::Add => aritm3!(+),
-                OpCode::Mul => aritm3!(*),
-                OpCode::Halt => break,
+                OpCode::Add(mode) => aritm3!(+, mode),
+                OpCode::Mul(mode) => aritm3!(*, mode),
+                OpCode::Input(mode) => {
+                    let [target] = self.op_addr_and_ip(mode);
+                    self.mem[target] = *input.next().unwrap();
+                }
+                OpCode::Output(mode) => {
+                    let [target] = self.op_addr_and_ip(mode);
+                    output.push(self.mem[target]);
+                }
+                OpCode::JNZ(mode) => {
+                    let [c, t] = self.op_addr_and_ip(mode);
+                    if self.mem[c] != 0 {
+                        self.ip = self.mem[t] as usize;
+                    }
+                }
+                OpCode::JZ(mode) => {
+                    let [c, t] = self.op_addr_and_ip(mode);
+                    if self.mem[c] == 0 {
+                        self.ip = self.mem[t] as usize;
+                    }
+                }
+                OpCode::Less(mode) => aritm3!(<, mode),
+                OpCode::Eq(mode) => aritm3!(==, mode),
+                OpCode::Halt(_mode) => break,
             }
         }
+        output
     }
 
-    pub fn peek(&self, addr: usize) -> usize {
+    pub fn peek(&self, addr: usize) -> MemCell {
         self.mem[addr]
     }
 
-    pub fn poke(&mut self, addr: usize, val: usize) -> usize {
+    pub fn poke(&mut self, addr: usize, val: MemCell) -> MemCell {
         std::mem::replace(&mut self.mem[addr], val)
     }
 }
