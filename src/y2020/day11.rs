@@ -9,21 +9,7 @@ pub type Row = Vec<Tile>;
 pub type TileGrid = Grid<Tile>;
 
 pub fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> TileGrid {
-    let mut grid = Vec::new();
-    let mut width = 0;
-    let mut height = 0;
-    for l in line_source.into_iter() {
-        let mut x = parse(l);
-        width = x.len();
-        height += 1;
-        grid.append(&mut x);
-    }
-
-    Grid::new(grid, width as i32, height)
-}
-
-fn parse<S: AsRef<str>>(s: S) -> Row {
-    s.as_ref().chars().map(|c| c.try_into().unwrap()).collect()
+    Grid::from_lines(line_source, |c| c.try_into().unwrap())
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
