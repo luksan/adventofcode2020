@@ -109,6 +109,28 @@ impl<T> Grid<T> {
         }
     }
 
+    pub fn from_lines<L, S, P>(line_source: S, mut tile_parser: P) -> Self
+    where
+        L: AsRef<str>,
+        S: IntoIterator<Item = L>,
+        P: FnMut(char) -> T,
+    {
+        let mut tiles = Vec::new();
+        let mut width = 0;
+        let mut height = 0;
+        for line in line_source.into_iter() {
+            height += 1;
+            let line = line.as_ref();
+            if width == 0 {
+                tiles.reserve(line.len() * line.len());
+            }
+            width = tiles.len();
+            tiles.extend(line.chars().map(|c| tile_parser(c)));
+            width = tiles.len() - width;
+        }
+        Grid::new(tiles, width as i32, height)
+    }
+
     pub fn width(&self) -> i32 {
         self.width
     }

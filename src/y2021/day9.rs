@@ -3,16 +3,7 @@ use crate::grid::Grid;
 type Tile = u8;
 
 fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Grid<Tile> {
-    let mut tiles = Vec::with_capacity(100 * 100);
-    let mut width = 0;
-    let mut height = 0;
-    for line in line_source.into_iter() {
-        height += 1;
-        width = tiles.len();
-        tiles.extend(line.as_ref().bytes().map(|b| b - b'0'));
-        width = tiles.len() - width;
-    }
-    Grid::new(tiles, width as i32, height)
+    Grid::from_lines(line_source, |c| c as u8 - b'0')
 }
 
 fn part1(grid: &Grid<Tile>) -> usize {
