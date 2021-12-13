@@ -7,7 +7,7 @@ use std::iter::Enumerate;
 use std::ops::{Index, IndexMut};
 use std::str::FromStr;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Coord {
     pub x: i32,
     pub y: i32,
