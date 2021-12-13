@@ -106,17 +106,14 @@ impl Intcode {
                 Mode::Rel => self.rel_base + self.mem[imm_addr],
             } as usize;
         }
-        let mut max = self.mem.len();
-        for addr in r {
-            if addr > max {
-                max = addr;
+        if N > 0 {
+            let max_addr = *r.iter().max().unwrap();
+            if max_addr >= self.mem.len() {
+                if self.mem.len() >= 10_000_000 {
+                    panic!("Intcode more than 10 M memory cells.")
+                }
+                self.mem.resize(max_addr * 2, 0);
             }
-        }
-        if max > self.mem.len() {
-            if self.mem.len() >= 10_000_000 {
-                panic!("Intcode more than 10 M memory cells.")
-            }
-            self.mem.resize(max * 2, 0);
         }
         self.ip += N + 1;
         r
