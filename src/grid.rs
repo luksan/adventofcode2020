@@ -128,7 +128,10 @@ impl<T> Grid<T> {
             tiles.extend(line.chars().map(|c| tile_parser(c)));
             width = tiles.len() - width;
         }
-        Grid::new(tiles, width as i32, height)
+        assert!(width > 0);
+        assert!(height > 0);
+        assert_eq!(width * height, tiles.len());
+        Grid::new(tiles, width as i32, height as i32)
     }
 
     pub fn width(&self) -> i32 {
