@@ -3,7 +3,7 @@ use itertools::Itertools;
 use std::collections::HashMap;
 use std::convert::TryInto;
 
-type Input = (String, Vec<Rule>);
+pub type Input = (String, Vec<Rule>);
 
 fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Input {
     let mut lines = line_source.into_iter();
@@ -20,17 +20,19 @@ fn parse<S: AsRef<str>>(s: S) -> Rule {
     }
 }
 
-struct Rule {
+pub struct Rule {
     pair: [u8; 2],
     insert: u8,
 }
 
+const CNT_MAX: usize = 32;
+
 #[derive(Clone)]
-struct Cnt([usize; 256]);
+struct Cnt([usize; CNT_MAX]);
 
 impl Cnt {
     pub fn new() -> Self {
-        Self([0; 256])
+        Self([0; CNT_MAX])
     }
 
     pub fn max(&self) -> (u8, usize) {
@@ -38,7 +40,7 @@ impl Cnt {
             .iter()
             .enumerate()
             .max_by_key(|(_idx, &b)| b)
-            .map(|(a, &b)| (a as u8, b))
+            .map(|(a, &b)| (a as u8 + b'A', b))
             .unwrap()
     }
 
@@ -48,7 +50,7 @@ impl Cnt {
             .enumerate()
             .filter(|(_, &b)| b > 0)
             .min_by_key(|(_idx, &b)| b)
-            .map(|(a, &b)| (a as u8, b))
+            .map(|(a, &b)| (a as u8 + b'A', b))
             .unwrap()
     }
 
@@ -60,14 +62,14 @@ impl Cnt {
     }
 
     pub fn count(&mut self, item: u8) {
-        self.0[item as usize] += 1;
+        self.0[(item - b'A') as usize] += 1;
     }
 }
 
 impl Extend<u8> for Cnt {
     fn extend<T: IntoIterator<Item = u8>>(&mut self, iter: T) {
         for n in iter.into_iter() {
-            self.0[n as usize] += 1;
+            self.count(n);
         }
     }
 }
@@ -130,6 +132,14 @@ fn part2(input: &Input) -> usize {
     }
 
     cnt.max().1 - cnt.min().1
+}
+
+pub fn bench(input: &Input) {
+    part2(input);
+}
+
+pub fn bench_input() -> Input {
+    load_input(crate::load_strings(crate::data_file!()))
 }
 
 #[test]
