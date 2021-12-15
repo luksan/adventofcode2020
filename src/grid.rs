@@ -5,9 +5,10 @@ use std::cmp::{max, min};
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::Enumerate;
 use std::ops::{Index, IndexMut};
+use std::slice::ChunksExact;
 use std::str::FromStr;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Coord {
     pub x: i32,
     pub y: i32,
@@ -157,6 +158,10 @@ impl<T> Grid<T> {
             }
             false => None,
         }
+    }
+
+    pub fn row_slices(&self) -> ChunksExact<'_, T> {
+        self.tiles.as_slice().chunks_exact(self.width as usize)
     }
 
     /// Returns an iterator over all the tiles in the grid
