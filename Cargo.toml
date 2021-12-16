@@ -16,6 +16,7 @@ lazy_static = "1.4.0"
 ndarray = "0.15.4"
 num-integer = "0.1.44"
 regex = "1.4.2"
+seahash = "4.1.0"
 scan_fmt = "0.2.5"
 smol_str = "0.1.17"
 

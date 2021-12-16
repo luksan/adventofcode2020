@@ -1,5 +1,7 @@
 use crate::GroupBlankLine;
-use std::collections::hash_map::DefaultHasher;
+
+use arrayvec::ArrayVec;
+
 use std::collections::{HashSet, VecDeque};
 use std::convert::TryInto;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
@@ -37,9 +39,15 @@ impl GameState {
     }
 
     fn state_hash(&self) -> u64 {
-        let hs = &mut DefaultHasher::new();
-        self.hash(hs);
-        hs.finish()
+        let mut flat = ArrayVec::<u8, 52>::new();
+
+        for p in 0..2 {
+            flat.push(50 + p);
+            let (a, b) = self.0[p as usize].as_slices();
+            let _ = flat.try_extend_from_slice(a);
+            let _ = flat.try_extend_from_slice(b);
+        }
+        seahash::hash(flat.as_slice())
     }
 
     fn draw(&mut self) -> [Card; 2] {
@@ -59,7 +67,7 @@ impl GameState {
             (true, false) => Some(1),
             (false, true) => Some(0),
             (false, false) => None,
-            _ => unreachable!("The cards have dissapeared!"),
+            _ => unreachable!("The cards have disappeared!"),
         }
     }
 
@@ -119,8 +127,10 @@ impl Hasher for SelfIsHash {
     }
 }
 
+type BuildSelfHash = BuildHasherDefault<SelfIsHash>;
+
 fn recursive_combat(gs: &mut GameState) -> Winner {
-    let mut history = HashSet::<u64, BuildHasherDefault<SelfIsHash>>::default();
+    let mut history = HashSet::<u64, BuildSelfHash>::default();
     while history.insert(gs.state_hash()) {
         if let Some(winner) = gs.check_empty_hand() {
             return winner;
