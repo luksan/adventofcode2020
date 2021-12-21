@@ -15,7 +15,12 @@ fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Input
         .collect_vec();
     assert_eq!(alg.len(), 512);
     lines.next(); // blank
-    let img = lines.map(parse).collect_vec();
+    let mut img = lines.map(parse).collect_vec();
+    let inf_row = vec![0; img[0].len()];
+    img.insert(0, inf_row.clone());
+    img.insert(0, inf_row.clone());
+    img.push(inf_row.clone());
+    img.push(inf_row);
     (alg, Image(img, 0))
 }
 
@@ -55,34 +60,38 @@ impl Debug for Image {
 
 impl Image {
     fn enhance(&self, alg: &[u8]) -> Self {
-        let mut new = Vec::with_capacity(self.0.len() + 2);
+        let mut new = Vec::with_capacity(self.0.len() + 4);
         let inf = self.1;
         let inf_addr = inf << 6 | inf << 3 | inf;
         let new_inf = if alg[inf_addr] == 0 { 0 } else { 0b111 };
-        for row in 0..(self.0.len() + 2) as i32 {
+
+        let row_len = self.0[0].len();
+        new.push(vec![new_inf; row_len]);
+        new.push(vec![new_inf; row_len]);
+
+        for rows in self.0.as_slice().windows(3).map(|r| {
+            [
+                r[0].iter().copied(),
+                r[1].iter().copied(),
+                r[2].iter().copied(),
+            ]
+        }) {
+            let [r1, r2, r3] = rows;
+            let mut new_row = Vec::with_capacity(row_len);
             let mut x = new_inf;
-            let mut new_line = Vec::new();
-            for col in 0..self.0[0].len() {
-                x = (x << 1 | alg[self.bits_at(row - 1, col)]) & 0b111;
-                new_line.push(x);
+            for addr in r1
+                .zip(r2)
+                .zip(r3)
+                .map(|((a, b), c)| (a as usize) << 6 | (b as usize) << 3 | c as usize)
+            {
+                x = (x << 1 | alg[addr]) & 0b111;
+                new_row.push(x);
             }
-            new.push(new_line);
+            new.push(new_row);
         }
-
+        new.push(vec![new_inf; row_len]);
+        new.push(vec![new_inf; row_len]);
         Self(new, new_inf as usize)
-    }
-
-    fn bits_at(&self, row: i32, col: usize) -> usize {
-        let mut ret = 0usize;
-        for r in row - 1..row + 2 {
-            if r < 0 || r >= self.0.len() as i32 {
-                ret = ret << 3 | self.1;
-                continue;
-            }
-            let r = r as usize;
-            ret = ret << 3 | self.0[r][col as usize] as usize
-        }
-        ret
     }
 
     fn count_ones(&self) -> usize {
