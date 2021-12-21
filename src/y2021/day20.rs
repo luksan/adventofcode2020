@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use std::fmt::{Debug, Formatter};
 
-type LineType = u128;
+type LineType = Vec<u8>;
 type Input = (Vec<u8>, Image);
 
 fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Input {
@@ -16,24 +16,32 @@ fn load_input<L: IntoIterator<Item = S>, S: AsRef<str>>(line_source: L) -> Input
     assert_eq!(alg.len(), 512);
     lines.next(); // blank
     let img = lines.map(parse).collect_vec();
-    (alg, Image(img))
+    (alg, Image(img, 0))
 }
 
 fn parse<S: AsRef<str>>(s: S) -> LineType {
-    s.as_ref()
-        .bytes()
-        .fold(0u128, |line, c| line << 1 | ((c == b'#') as u128))
-        << 10 // shit 10 to pad right side
+    let mut x = 0;
+    let mut line = vec![0; 0];
+    line.extend(
+        s.as_ref()
+            .bytes()
+            .chain(".".bytes().cycle().take(102))
+            .map(|c| {
+                x = (x << 1 | (c == b'#') as u8) & 0b111;
+                x
+            }),
+    );
+    line
 }
 
 #[derive(Clone)]
-struct Image(Vec<u128>);
+struct Image(Vec<Vec<u8>>, usize);
 
 impl Debug for Image {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for row in &self.0 {
-            for c in 0..128 {
-                if *row >> (127 - c) & 1 == 1 {
+            for c in row.iter() {
+                if *c & 0b010 != 0 {
                     write!(f, "#")?;
                 } else {
                     write!(f, ".")?;
@@ -44,60 +52,67 @@ impl Debug for Image {
         Ok(())
     }
 }
+
 impl Image {
-    fn enhance(&self, alg: &[u8], inf: usize) -> Self {
-        let mut new = vec![0u128; self.0.len() + 4];
-        for row in 0..new.len() {
-            for bit in (0..128).rev() {
-                new[row] = new[row] << 1 | alg[self.bits_at(row as i32 - 2, bit, inf)] as u128
+    fn enhance(&self, alg: &[u8]) -> Self {
+        let mut new = Vec::with_capacity(self.0.len() + 2);
+        let inf = self.1;
+        let inf_addr = inf << 6 | inf << 3 | inf;
+        let new_inf = if alg[inf_addr] == 0 { 0 } else { 0b111 };
+        for row in 0..(self.0.len() + 2) as i32 {
+            let mut x = new_inf;
+            let mut new_line = Vec::new();
+            for col in 0..self.0[0].len() {
+                x = (x << 1 | alg[self.bits_at(row - 1, col)]) & 0b111;
+                new_line.push(x);
             }
+            new.push(new_line);
         }
-        Self(new)
+
+        Self(new, new_inf as usize)
     }
 
-    fn bits_at(&self, row: i32, bit: u32, inf: usize) -> usize {
+    fn bits_at(&self, row: i32, col: usize) -> usize {
         let mut ret = 0usize;
         for r in row - 1..row + 2 {
             if r < 0 || r >= self.0.len() as i32 {
-                ret = ret << 3 | inf;
+                ret = ret << 3 | self.1;
                 continue;
             }
             let r = r as usize;
-            if bit > 0 {
-                ret = ret << 3 | (self.0[r] >> (bit - 1) & 0b111) as usize;
-                if bit == 127 && inf > 0 {
-                    ret |= 0b100;
-                }
-            } else {
-                ret = ret << 3 | (self.0[r] as usize & 0b011) << 1 | inf & 0b001
-            }
+            ret = ret << 3 | self.0[r][col as usize] as usize
         }
         ret
     }
+
+    fn count_ones(&self) -> usize {
+        self.0
+            .iter()
+            .flat_map(|line| line.iter().copied())
+            .map(|p| (p >> 1 & 1) as usize)
+            .sum()
+    }
 }
 
-fn part1(input: &Input) -> u32 {
+fn part1(input: &Input) -> usize {
     let (alg, img) = input;
-    let e1 = img.enhance(alg, 0);
-    let e2 = e1.enhance(alg, 0b111);
-    println!("{:?}", img);
-    println!("--");
-    println!("{:?}", e1);
-    println!("--");
-    println!("{:?}", e2);
-
-    e2.0.iter().fold(0, |cnt, row| cnt + row.count_ones())
+    img.enhance(alg).enhance(alg).count_ones()
 }
 
-fn part2(_input: &Input) -> usize {
-    0
+fn part2(input: &Input) -> usize {
+    let (alg, img) = input;
+    let mut img = img.enhance(alg);
+    for _ in 1..50 {
+        img = img.enhance(alg);
+    }
+    img.count_ones()
 }
 
 #[test]
 fn real_data() {
     let d = load_input(crate::load_strings(crate::data_file!()));
     assert_eq!(part1(&d), 5884);
-    assert_eq!(part2(&d), 1);
+    assert_eq!(part2(&d), 19043);
 }
 
 #[test]
